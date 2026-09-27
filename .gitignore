@@ -8,6 +8,8 @@ node_modules
 .vs/
 .vscode/
 .vscode
+.prettierrc
+.prettierrc/
 .idea/
 .DS_Store
 *.suo
@@ -26,6 +28,7 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+
 
 .env
 appsettings.Development.json
