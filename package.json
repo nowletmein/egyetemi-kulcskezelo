@@ -1,0 +1,10 @@
+{
+  "name": "root",
+  "private": true,
+  "scripts": {
+    "check:all": "npm run check --prefix FrontEnd/kulcs-rendszer-frontend && dotnet format BackEnd --verify-no-changes"
+  },
+  "devDependencies": {
+    "eslint-config-prettier": "^10.1.8"
+  }
+}
