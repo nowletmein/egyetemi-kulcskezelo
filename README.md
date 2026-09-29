@@ -26,7 +26,29 @@ A rendszer celja egy kozpontositott, digitalis felulet biztositasa, amely:
 
 ---
 
-## 3. Rendszerarchitektura (C4 Container szint)
+## 3. Rendszerinditas es fejlesztoi kornyezet
+
+A projekt egy tobbkonteneres kornyezetben fut, amely magaban foglalja a **React** frontendet, a **.NET Core** backend REST API-t, valamint az **MSSQL** adatbazis-kiszolgalot. A teljes infrastruktura a legegyszerubben Docker segitsegevel indithato el.
+
+### Elokovetelmenyek
+- [Docker Desktop](https://www.docker.com/) telepitve es futtatva
+- [Git](https://git-scm.com/)
+
+### Gyors inditas (Docker Compose)
+A projekt gyokerkonyvtaraban futtasd a kovetkezo parancsot:
+
+```bash
+docker compose up --build
+```
+
+A kontener-infrastruktura leallitasa:
+```bash
+docker compose down
+```
+
+---
+
+## 4. Rendszerarchitektura (C4 Container szint)
 
 ```mermaid
 graph TB
@@ -57,7 +79,7 @@ graph TB
 
 ---
 
-## 4. Adatbazis sema (ER Diagram)
+## 5. Adatbazis sema (ER Diagram)
 
 ```mermaid
 erDiagram
@@ -134,3 +156,4 @@ erDiagram
     int admin_id FK
     date datum
   }
+```
