@@ -21,7 +21,9 @@ namespace KulcsRendszer.DataContext.Context {
         public DbSet<Maintenance> Maintenances { get; set; }
         public DbSet<KeyMovement> KeyMovements { get; set; }
         public DbSet<Keys> Keys { get; set; }
-        
+        public DbSet<ClassRoom> ClassRooms { get; set; }
+        public DbSet<IssueTicket> IssueTickets { get; set; }
+        public DbSet<MasterKeyPermission> MasterKeyPermissions { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder) { 
 
         }
