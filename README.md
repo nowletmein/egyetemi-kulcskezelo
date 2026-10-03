@@ -34,7 +34,7 @@ A projekt egy tobbkonteneres kornyezetben fut, amely magaban foglalja a **React*
 - [Docker Desktop](https://www.docker.com/) telepitve es futtatva
 - [Git](https://git-scm.com/)
 
-### Gyors inditas (Docker Compose)
+### Gyors inditas
 A projekt gyokerkonyvtaraban futtasd a kovetkezo parancsot:
 
 ```bash
@@ -45,6 +45,11 @@ A kontener-infrastruktura leallitasa:
 ```bash
 docker compose down
 ```
+
+### A futo szolgaltatasok portjai:
+- Backend: 5000:8080
+- Frontend: 3000:80
+- Database: 1433:1433
 
 ---
 
@@ -99,73 +104,63 @@ erDiagram
     SZEREPKOR ||--o{ KULCS_HOZZAFERES : engedélyez
     FOGLALAS |o--o{ KULCSMOZGAS : kivalthat
 
-    MESTERKULCS ||--o{ MESTERKULCS_TEREM : tartalmaz
-    TEREM ||--o{ MESTERKULCS_TEREM : beletartozik
+  FELHASZNALO {
+    int id PK
+    string nev
+    string email
+    password jelszo
+    string szerepkor
+  }
+  TEREM {
+    string id PK
+    string epulet
+    int szint
+    string nev
+    int ferohely
+    string felszereltseg
+  }
+  KULCS {
+    int id PK
+    string terem_id FK
+  }
+  FOGLALAS {
+    int id PK
+    int oktato_id FK
+    string terem_id FK
+    datetime kezdet
+    datetime veg
+    string statusz
+  }
+  KULCSMOZGAS {
+    int id PK
+    int kulcs_id FK
+    int felhasznalo_id FK
+    int foglalas_id FK
+    string tipus
+    datetime idobelyeg
+    string azonositas_mod
+  }
+  HIBAJEGY {
+    int id PK
+    int kulcs_id FK
+    string terem_id FK
+    int bejelento_id FK
+    string leiras
+    string statusz
+  }
+  KARBANTARTAS {
+    int id PK
+    string terem_id FK
+    int admin_id FK
+    datetime kezdet
+    datetime veg
+  }
+  MESTERKULCS_JOG {
+    int id PK
+    int kulcs_id FK
+    int felhasznalo_id FK
+    int admin_id FK
+    date datum
+  }
 
-    SZEREPKOR {
-        int id PK
-        string nev
-    }
-    FELHASZNALO {
-        int id PK
-        string nev
-        string email
-        password jelszo
-        int szerepkor_id FK
-    }
-    TEREM {
-        string id PK
-        string epulet
-        int szint
-        string nev
-        int ferohely
-        string felszereltseg
-    }
-    KULCS {
-        int id PK
-        string terem_id FK
-    }
-    MESTERKULCS {
-        string mesterkulcs_nev
-    }
-    MESTERKULCS_TEREM {
-        int mesterkulcs_id FK
-        string terem_id FK
-    }
-    KULCS_HOZZAFERES {
-        int id PK
-        int kulcs_id FK
-        int szerepkor_id FK
-    }
-    FOGLALAS {
-        int id PK
-        int oktato_id FK
-        string terem_id FK
-        datetime kezdet
-        datetime veg
-        string statusz
-    }
-    KULCSMOZGAS {
-        int id PK
-        int kulcs_id FK
-        int felhasznalo_id FK
-        int foglalas_id FK
-        datetime idobelyeg
-        string azonositas_mod
-    }
-    HIBAJEGY {
-        int id PK
-        int kulcs_id FK
-        string terem_id FK
-        int bejelento_id FK
-        string leiras
-        string statusz
-    }
-    KARBANTARTAS {
-        int id PK
-        string terem_id FK
-        int admin_id FK
-        datetime kezdet
-        datetime veg
-    }
 ```
