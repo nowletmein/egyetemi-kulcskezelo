@@ -34,7 +34,7 @@ A projekt egy tobbkonteneres kornyezetben fut, amely magaban foglalja a **React*
 - [Docker Desktop](https://www.docker.com/) telepitve es futtatva
 - [Git](https://git-scm.com/)
 
-### Gyors inditas (Docker Compose)
+### Gyors inditas
 A projekt gyokerkonyvtaraban futtasd a kovetkezo parancsot:
 
 ```bash
@@ -45,6 +45,11 @@ A kontener-infrastruktura leallitasa:
 ```bash
 docker compose down
 ```
+
+### A futo szolgaltatasok portjai:
+- Backend: 5000:8080
+- Frontend: 3000:80
+- Database: 1433:1433
 
 ---
 
@@ -115,7 +120,6 @@ erDiagram
   KULCS {
     int id PK
     string terem_id FK
-    string tipus
   }
   FOGLALAS {
     int id PK
