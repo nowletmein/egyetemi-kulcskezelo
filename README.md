@@ -88,89 +88,103 @@ graph TB
 
 ```mermaid
 erDiagram
-    FELHASZNALO ||--o{ FOGLALAS : letrehoz
-    FELHASZNALO ||--o{ KULCSMOZGAS : vegzi
-    FELHASZNALO ||--o{ HIBAJEGY : bejelent
-    FELHASZNALO ||--o{ KARBANTARTAS : elrendel
-    SZEREPKOR ||--o{ FELHASZNALO : rendelkezik
-    TEREM ||--o{ KULCS : tartalmaz
-    TEREM ||--o{ FOGLALAS : erint
-    TEREM ||--o{ HIBAJEGY : erint
-    TEREM ||--o{ KARBANTARTAS : erint
-    KULCS ||--o{ KULCSMOZGAS : mozog
-    KULCS ||--o{ HIBAJEGY : erint
-    KULCS ||--|| MESTERKULCS : oroklodik
-    KULCS ||--o{ KULCS_HOZZAFERES : szabalyoz
-    SZEREPKOR ||--o{ KULCS_HOZZAFERES : engedélyez
-    FOGLALAS |o--o{ KULCSMOZGAS : kivalthat
+    Roles ||--o{ Users : "tartalmaz"
 
-    MESTERKULCS ||--o{ MESTERKULCS_TEREM : tartalmaz
-    TEREM ||--o{ MESTERKULCS_TEREM : beletartozik
+    Users ||--o{ Bookings : "foglal"
+    Users ||--o{ KeyMovements : "vegez"
+    Users ||--o{ IssueTickets : "jelent"
+    Users ||--o{ Maintenances : "elrendel"
+    Users ||--o{ MasterKeyPermissions : "kap"
+    Users ||--o{ MasterKeyPermissions : "engedelyez"
 
-    SZEREPKOR {
-        int id PK
-        string nev
+    ClassRooms ||--o{ Keys : "tartalmaz"
+    ClassRooms ||--o{ Bookings : "erint"
+    ClassRooms ||--o{ IssueTickets : "erint"
+    ClassRooms ||--o{ Maintenances : "erint"
+    ClassRooms ||--o{ ClassRoomMasterKey : "elerheto"
+
+    Keys ||--o{ KeyMovements : "mozog"
+    Keys ||--o{ IssueTickets : "erint"
+    Keys ||--o{ MasterKeyPermissions : "szabalyoz"
+    Keys ||--o{ ClassRoomMasterKey : "hozzafer"
+
+    Bookings |o--o{ KeyMovements : "tartalmaz"
+
+    Roles {
+        int Id PK
+        int Name
     }
-    FELHASZNALO {
-        int id PK
-        string nev
-        string email
-        password jelszo
-        int szerepkor_id FK
+
+    Users {
+        int Id PK
+        int RoleId FK
+        string Name
+        string Email
+        string PasswordHash
     }
-    TEREM {
-        string id PK
-        string epulet
-        int szint
-        string nev
-        int ferohely
-        string felszereltseg
+
+    ClassRooms {
+        string Id PK
+        string Building
+        int Floor
+        string Name
+        int Capacity
+        string Equipment
     }
-    KULCS {
-        int id PK
-        string terem_id FK
+
+    Keys {
+        int Id PK
+        string RoomId FK "nullable"
+        string KeyType "Standard | Master"
+        string MasterKeyName "nullable"
     }
-    MESTERKULCS {
-        string mesterkulcs_nev
+
+    ClassRoomMasterKey {
+        string AccessibleRoomsId PK,FK
+        int MasterKeyId PK,FK
     }
-    MESTERKULCS_TEREM {
-        int mesterkulcs_id FK
-        string terem_id FK
+
+    MasterKeyPermissions {
+        int Id PK
+        int UserId FK
+        int KeyId FK
+        int GrantedByAdminId FK
+        datetime GrantedAt
     }
-    KULCS_HOZZAFERES {
-        int id PK
-        int kulcs_id FK
-        int szerepkor_id FK
+
+    Bookings {
+        int Id PK
+        int UserId FK
+        string RoomId FK
+        datetime StartTime
+        datetime EndTime
+        string Status
+        string SpecialRequest
     }
-    FOGLALAS {
-        int id PK
-        int oktato_id FK
-        string terem_id FK
-        datetime kezdet
-        datetime veg
-        string statusz
+
+    KeyMovements {
+        int Id PK
+        int KeyId FK
+        int UserId FK
+        int BookingId FK "nullable"
+        datetime Timestamp
+        string IdentificationMethod
     }
-    KULCSMOZGAS {
-        int id PK
-        int kulcs_id FK
-        int felhasznalo_id FK
-        int foglalas_id FK
-        datetime idobelyeg
-        string azonositas_mod
+
+    IssueTickets {
+        int Id PK
+        int KeyId FK "nullable"
+        string RoomId FK
+        int ReporterId FK
+        string Description
+        string Status
     }
-    HIBAJEGY {
-        int id PK
-        int kulcs_id FK
-        string terem_id FK
-        int bejelento_id FK
-        string leiras
-        string statusz
-    }
-    KARBANTARTAS {
-        int id PK
-        string terem_id FK
-        int admin_id FK
-        datetime kezdet
-        datetime veg
+
+    Maintenances {
+        int Id PK
+        string RoomId FK
+        int AdminId FK
+        datetime StartTime
+        datetime EndTime
     }
 ```
