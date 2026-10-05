@@ -88,27 +88,27 @@ graph TB
 
 ```mermaid
 erDiagram
-    Roles ||--o{ Users : "tartalmaz"
+    Roles ||--o{ Users : "has"
 
-    Users ||--o{ Bookings : "foglal"
-    Users ||--o{ KeyMovements : "vegez"
-    Users ||--o{ IssueTickets : "jelent"
-    Users ||--o{ Maintenances : "elrendel"
-    Users ||--o{ MasterKeyPermissions : "kap"
-    Users ||--o{ MasterKeyPermissions : "engedelyez"
+    Users ||--o{ Bookings : "creates"
+    Users ||--o{ KeyMovements : "performs"
+    Users ||--o{ IssueTickets : "reports"
+    Users ||--o{ Maintenances : "orders"
+    Users ||--o{ MasterKeyPermissions : "granted_to"
+    Users ||--o{ MasterKeyPermissions : "granted_by"
 
-    ClassRooms ||--o{ Keys : "tartalmaz"
-    ClassRooms ||--o{ Bookings : "erint"
-    ClassRooms ||--o{ IssueTickets : "erint"
-    ClassRooms ||--o{ Maintenances : "erint"
-    ClassRooms ||--o{ ClassRoomMasterKey : "elerheto"
+    ClassRooms ||--o{ Bookings : "booked_in"
+    ClassRooms ||--o{ Maintenances : "maintained"
+    ClassRooms ||--o{ IssueTickets : "reported_for"
+    ClassRooms ||--o{ Keys : "has_standard_key"
+    ClassRooms ||--o{ MasterKeyAccess : "accessible_via"
 
-    Keys ||--o{ KeyMovements : "mozog"
-    Keys ||--o{ IssueTickets : "erint"
-    Keys ||--o{ MasterKeyPermissions : "szabalyoz"
-    Keys ||--o{ ClassRoomMasterKey : "hozzafer"
+    Keys ||--o{ MasterKeyAccess : "opens"
+    Keys ||--o{ MasterKeyPermissions : "authorized_for"
+    Keys ||--o{ KeyMovements : "moved"
+    Keys ||--o{ IssueTickets : "reported_for"
 
-    Bookings |o--o{ KeyMovements : "tartalmaz"
+    Bookings |o--o{ KeyMovements : "associated_with"
 
     Roles {
         int Id PK
@@ -123,35 +123,6 @@ erDiagram
         string PasswordHash
     }
 
-    ClassRooms {
-        string Id PK
-        string Building
-        int Floor
-        string Name
-        int Capacity
-        string Equipment
-    }
-
-    Keys {
-        int Id PK
-        string RoomId FK "nullable"
-        string KeyType "Standard | Master"
-        string MasterKeyName "nullable"
-    }
-
-    ClassRoomMasterKey {
-        string AccessibleRoomsId PK,FK
-        int MasterKeyId PK,FK
-    }
-
-    MasterKeyPermissions {
-        int Id PK
-        int UserId FK
-        int KeyId FK
-        int GrantedByAdminId FK
-        datetime GrantedAt
-    }
-
     Bookings {
         int Id PK
         int UserId FK
@@ -162,13 +133,21 @@ erDiagram
         string SpecialRequest
     }
 
-    KeyMovements {
+    ClassRooms {
+        string Id PK
+        string Building
+        int Floor
+        string Name
+        int Capacity
+        string Equipment
+    }
+
+    Maintenances {
         int Id PK
-        int KeyId FK
-        int UserId FK
-        int BookingId FK "nullable"
-        datetime Timestamp
-        string IdentificationMethod
+        string RoomId FK
+        int AdminId FK
+        datetime StartTime
+        datetime EndTime
     }
 
     IssueTickets {
@@ -180,11 +159,32 @@ erDiagram
         string Status
     }
 
-    Maintenances {
+    KeyMovements {
         int Id PK
-        string RoomId FK
-        int AdminId FK
-        datetime StartTime
-        datetime EndTime
+        int KeyId FK
+        int UserId FK
+        int BookingId FK "nullable"
+        datetime Timestamp
+        string IdentificationMethod
+    }
+
+    Keys {
+        int Id PK
+        string RoomId FK "nullable"
+        string KeyType
+        string MasterKeyName "nullable"
+    }
+
+    MasterKeyAccess {
+        string AccessibleRoomsId PK,FK
+        int MasterKeyId PK,FK
+    }
+
+    MasterKeyPermissions {
+        int Id PK
+        int UserId FK
+        int KeyId FK
+        int GrantedByAdminId FK
+        datetime GrantedAt
     }
 ```
