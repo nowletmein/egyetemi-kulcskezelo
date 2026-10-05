@@ -36,7 +36,7 @@ namespace KulcsRendszer.DataContext.Context {
             // MasterKey -> AccessibleRooms (Many-to-Many join table)
             modelBuilder.Entity<MasterKey>()
                 .HasMany(m => m.AccessibleRooms)
-                .WithMany().UsingEntity(j => j.ToTable("MasterKeyRooms"));
+                .WithMany().UsingEntity(j => j.ToTable("MasterKeyAccess"));
 
             // MasterKeyPermission -> User (Recipient)
             modelBuilder.Entity<MasterKeyPermission>()
