@@ -1,5 +1,30 @@
+root = true
+
 [*.cs]
-csharp_indent_block_contents = true
-csharp_new_line_before_open_brace = none
+# Indentation and newlines
 indent_style = space
 indent_size = 4
+end_of_line = crlf
+insert_final_newline = true
+
+# Using directives
+dotnet_sort_system_directives_first = true
+csharp_using_directive_placement = outside_namespace:warning
+
+# Formatting rules (K&R style)
+csharp_new_line_before_open_brace = none
+csharp_space_after_keywords_in_control_flow_statements = true
+
+# Code style rules
+dotnet_style_qualification_for_field = false:warning
+dotnet_style_qualification_for_property = false:warning
+
+# Naming Conventions - PascalCase (Types, Properties, Methods)
+dotnet_naming_rule.pascal_case_rule.severity = warning
+dotnet_naming_rule.pascal_case_rule.symbols = pascal_case_symbols
+dotnet_naming_rule.pascal_case_rule.style = pascal_case_style
+
+dotnet_naming_symbols.pascal_case_symbols.applicable_kinds = class, struct, enum, property, method
+dotnet_naming_symbols.pascal_case_symbols.applicable_accessibilities = *
+
+dotnet_naming_style.pascal_case_style.capitalization = pascal_case

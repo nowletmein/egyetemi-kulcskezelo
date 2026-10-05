@@ -17,5 +17,6 @@ namespace KulcsRendszer.DataContext.Entities {
         public ICollection<Booking> Bookings { get; set; } = new List<Booking>();
         public ICollection<Maintenance> Maintenances { get; set; } = new List<Maintenance>();
         public ICollection<IssueTicket> IssueTickets { get; set; } = new List<IssueTicket>();
+        public ICollection<Key> Keys { get; set; } = new List<Key>();
     }
 }
