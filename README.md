@@ -26,7 +26,34 @@ A rendszer celja egy kozpontositott, digitalis felulet biztositasa, amely:
 
 ---
 
-## 3. Rendszerarchitektura (C4 Container szint)
+## 3. Rendszerinditas es fejlesztoi kornyezet
+
+A projekt egy tobbkonteneres kornyezetben fut, amely magaban foglalja a **React** frontendet, a **.NET Core** backend REST API-t, valamint az **MSSQL** adatbazis-kiszolgalot. A teljes infrastruktura a legegyszerubben Docker segitsegevel indithato el.
+
+### Elokovetelmenyek
+- [Docker Desktop](https://www.docker.com/) telepitve es futtatva
+- [Git](https://git-scm.com/)
+
+### Gyors inditas
+A projekt gyokerkonyvtaraban futtasd a kovetkezo parancsot:
+
+```bash
+docker compose up --build
+```
+
+A kontener-infrastruktura leallitasa:
+```bash
+docker compose down
+```
+
+### A futo szolgaltatasok portjai:
+- Backend: 5000:8080
+- Frontend: 3000:80
+- Database: 1433:1433
+
+---
+
+## 4. Rendszerarchitektura (C4 Container szint)
 
 ```mermaid
 graph TB
@@ -57,80 +84,107 @@ graph TB
 
 ---
 
-## 4. Adatbazis sema (ER Diagram)
+## 5. Adatbazis sema (ER Diagram)
 
 ```mermaid
 erDiagram
-  FELHASZNALO ||--o{ FOGLALAS : letrehoz
-  FELHASZNALO ||--o{ KULCSMOZGAS : vegzi
-  FELHASZNALO ||--o{ HIBAJEGY : bejelent
-  FELHASZNALO ||--o{ KARBANTARTAS : elrendel
-  FELHASZNALO ||--o{ MESTERKULCS_JOG : kap
-  TEREM ||--o{ KULCS : tartalmaz
-  TEREM ||--o{ FOGLALAS : erint
-  TEREM ||--o{ HIBAJEGY : erint
-  TEREM ||--o{ KARBANTARTAS : erint
-  KULCS ||--o{ KULCSMOZGAS : mozog
-  KULCS ||--o{ HIBAJEGY : erint
-  KULCS ||--o{ MESTERKULCS_JOG : jogosit
-  FOGLALAS |o--o{ KULCSMOZGAS : kivalthat
+    Roles ||--o{ Users : "has"
 
-  FELHASZNALO {
-    int id PK
-    string nev
-    string email
-    password jelszo
-    string szerepkor
-  }
-  TEREM {
-    string id PK
-    string epulet
-    int szint
-    string nev
-    int ferohely
-    string felszereltseg
-  }
-  KULCS {
-    int id PK
-    string terem_id FK
-    string tipus
-  }
-  FOGLALAS {
-    int id PK
-    int oktato_id FK
-    string terem_id FK
-    datetime kezdet
-    datetime veg
-    string statusz
-  }
-  KULCSMOZGAS {
-    int id PK
-    int kulcs_id FK
-    int felhasznalo_id FK
-    int foglalas_id FK
-    string tipus
-    datetime idobelyeg
-    string azonositas_mod
-  }
-  HIBAJEGY {
-    int id PK
-    int kulcs_id FK
-    string terem_id FK
-    int bejelento_id FK
-    string leiras
-    string statusz
-  }
-  KARBANTARTAS {
-    int id PK
-    string terem_id FK
-    int admin_id FK
-    datetime kezdet
-    datetime veg
-  }
-  MESTERKULCS_JOG {
-    int id PK
-    int kulcs_id FK
-    int felhasznalo_id FK
-    int admin_id FK
-    date datum
-  }
+    Users ||--o{ Bookings : "creates"
+    Users ||--o{ KeyMovements : "performs"
+    Users ||--o{ IssueTickets : "reports"
+    Users ||--o{ Maintenances : "orders"
+    Users ||--o{ MasterKeyPermissions : "granted_to"
+    Users ||--o{ MasterKeyPermissions : "granted_by"
+
+    ClassRooms ||--o{ Bookings : "booked_in"
+    ClassRooms ||--o{ Maintenances : "maintained"
+    ClassRooms ||--o{ IssueTickets : "reported_for"
+    ClassRooms ||--o{ Keys : "has_standard_key"
+    ClassRooms ||--o{ MasterKeyAccess : "accessible_via"
+
+    Keys ||--o{ MasterKeyAccess : "opens"
+    Keys ||--o{ MasterKeyPermissions : "authorized_for"
+    Keys ||--o{ KeyMovements : "moved"
+    Keys ||--o{ IssueTickets : "reported_for"
+
+    Bookings |o--o{ KeyMovements : "associated_with"
+
+    Roles {
+        int Id PK
+        int Name
+    }
+
+    Users {
+        int Id PK
+        int RoleId FK
+        string Name
+        string Email
+        string PasswordHash
+    }
+
+    Bookings {
+        int Id PK
+        int UserId FK
+        string RoomId FK
+        datetime StartTime
+        datetime EndTime
+        string Status
+        string SpecialRequest
+    }
+
+    ClassRooms {
+        string Id PK
+        string Building
+        int Floor
+        string Name
+        int Capacity
+        string Equipment
+    }
+
+    Maintenances {
+        int Id PK
+        string RoomId FK
+        int AdminId FK
+        datetime StartTime
+        datetime EndTime
+    }
+
+    IssueTickets {
+        int Id PK
+        int KeyId FK "nullable"
+        string RoomId FK
+        int ReporterId FK
+        string Description
+        string Status
+    }
+
+    KeyMovements {
+        int Id PK
+        int KeyId FK
+        int UserId FK
+        int BookingId FK "nullable"
+        datetime Timestamp
+        string IdentificationMethod
+    }
+
+    Keys {
+        int Id PK
+        string RoomId FK "nullable"
+        string KeyType
+        string MasterKeyName "nullable"
+    }
+
+    MasterKeyAccess {
+        string AccessibleRoomsId PK,FK
+        int MasterKeyId PK,FK
+    }
+
+    MasterKeyPermissions {
+        int Id PK
+        int UserId FK
+        int KeyId FK
+        int GrantedByAdminId FK
+        datetime GrantedAt
+    }
+```

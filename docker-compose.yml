@@ -2,6 +2,7 @@
 
 services:
   database:
+    user: 0:0
     image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: kulcs_rendszer_db
     environment:
@@ -11,6 +12,8 @@ services:
       - "1433:1433"
     volumes:
       - mssql_data:/var/opt/mssql/data
+  
+  
 
   backend:
     build:
