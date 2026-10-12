@@ -1,6 +1,7 @@
 ﻿
 using Microsoft.EntityFrameworkCore;
 using KulcsRendszer.DataContext.Context;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace KulcsRendszer.API {
     public class Program {
@@ -15,14 +16,39 @@ namespace KulcsRendszer.API {
                 });
             });
 
+            //swagger gen
+            builder.Services.AddControllers();
+            builder.Services.AddEndpointsApiExplorer();
+            builder.Services.AddSwaggerGen();
+
             //database service
+            //builder.Services.AddDbContext<KulcsRendszerDbContext>(options =>
+            // options.UseSqlServer(@"Server=(localdb)\mssqllocaldb;Database=KulcsRendszerDB;Trusted_Connection=True;TrustServerCertificate=true"));
+
             builder.Services.AddDbContext<KulcsRendszerDbContext>(options =>
-                options.UseSqlServer(@"Server=(localdb)\mssqllocaldb;Database=KulcsRendszerDB;Trusted_Connection=True;TrustServerCertificate=true"));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection") ?? "Server=db;Database=KulcsRendszerDB;User Id=sa;Password=YourPassword123!;TrustServerCertificate=true"));
+            //healthchek for database
+            builder.Services.AddHealthChecks()
+            .AddDbContextCheck<KulcsRendszerDbContext>();
+
 
             var app = builder.Build();
+            
+            // After app building:
+            // Enable middleware to serve generated Swagger as a JSON endpoint and the Swagger UI
+            if (app.Environment.IsDevelopment()) {
+                app.UseSwagger();
+                app.UseSwaggerUI();
+            }
 
+            app.MapControllers();
+            app.MapHealthChecks("/api/health");
             app.MapGet("/", () => "A váz sikeresen elindult!");
 
+            using (var scope = app.Services.CreateScope()) {
+                var dbContext = scope.ServiceProvider.GetRequiredService<KulcsRendszerDbContext>();
+                dbContext.Database.EnsureCreated(); // vagy dbContext.Database.Migrate();
+            }
             app.Run();
         }
     }
