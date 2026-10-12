@@ -6,7 +6,7 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 namespace KulcsRendszer.API {
     public class Program {
         public static void Main(string[] args) {
-            
+
             var builder = WebApplication.CreateBuilder(args);
             builder.Services.AddCors(options => {
                 options.AddPolicy("ReactPolicy", policy => {
@@ -33,7 +33,7 @@ namespace KulcsRendszer.API {
 
 
             var app = builder.Build();
-            
+
             // After app building:
             // Enable middleware to serve generated Swagger as a JSON endpoint and the Swagger UI
             if (app.Environment.IsDevelopment()) {
@@ -52,8 +52,9 @@ namespace KulcsRendszer.API {
                 } catch (Exception) {
                     Console.WriteLine("Adatbázis már létezik");
                 }
-            //}
-            app.Run();
+                //}
+                app.Run();
+            }
         }
     }
 }
