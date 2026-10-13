@@ -1,4 +1,4 @@
-﻿
+﻿using KulcsRendszer.Services.Services;
 using Microsoft.EntityFrameworkCore;
 using KulcsRendszer.DataContext.Context;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -21,9 +21,12 @@ namespace KulcsRendszer.API {
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
+            //controllers
+            builder.Services.AddScoped<IUserService, UserService>();
+
             //database service
             //builder.Services.AddDbContext<KulcsRendszerDbContext>(options =>
-            // options.UseSqlServer(@"Server=(localdb)\mssqllocaldb;Database=KulcsRendszerDB;Trusted_Connection=True;TrustServerCertificate=true"));
+            //options.UseSqlServer(@"Server=(localdb)\mssqllocaldb;Database=KulcsRendszerDB;Trusted_Connection=True;TrustServerCertificate=true"));
 
             builder.Services.AddDbContext<KulcsRendszerDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection") ?? "Server=db;Database=KulcsRendszerDB;User Id=sa;Password=YourPassword123!;TrustServerCertificate=true"));
