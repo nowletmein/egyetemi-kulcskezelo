@@ -91,7 +91,7 @@ namespace KulcsRendszer.DataContext.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("Floor")
+                    b.Property<int>("FloorId")
                         .HasColumnType("int");
 
                     b.Property<string>("Name")
@@ -100,7 +100,25 @@ namespace KulcsRendszer.DataContext.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("FloorId");
+
                     b.ToTable("ClassRooms");
+                });
+
+            modelBuilder.Entity("KulcsRendszer.DataContext.Entities.Floor", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("Number")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Floors");
                 });
 
             modelBuilder.Entity("KulcsRendszer.DataContext.Entities.IssueTicket", b =>
@@ -377,6 +395,17 @@ namespace KulcsRendszer.DataContext.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("KulcsRendszer.DataContext.Entities.ClassRoom", b =>
+                {
+                    b.HasOne("KulcsRendszer.DataContext.Entities.Floor", "Floor")
+                        .WithMany("Rooms")
+                        .HasForeignKey("FloorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Floor");
+                });
+
             modelBuilder.Entity("KulcsRendszer.DataContext.Entities.IssueTicket", b =>
                 {
                     b.HasOne("KulcsRendszer.DataContext.Entities.Key", "Key")
@@ -509,6 +538,11 @@ namespace KulcsRendszer.DataContext.Migrations
                     b.Navigation("Keys");
 
                     b.Navigation("Maintenances");
+                });
+
+            modelBuilder.Entity("KulcsRendszer.DataContext.Entities.Floor", b =>
+                {
+                    b.Navigation("Rooms");
                 });
 
             modelBuilder.Entity("KulcsRendszer.DataContext.Entities.Key", b =>

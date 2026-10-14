@@ -14,6 +14,7 @@ namespace KulcsRendszer.DataContext.Context {
         public DbSet<Key> Keys { get; set; }
         public DbSet<MasterKey> MasterKeys { get; set; }
         public DbSet<ClassRoom> ClassRooms { get; set; }
+        public DbSet<Floor> Floors { get; set; }
         public DbSet<IssueTicket> IssueTickets { get; set; }
         public DbSet<MasterKeyPermission> MasterKeyPermissions { get; set; }
 
@@ -64,6 +65,13 @@ namespace KulcsRendszer.DataContext.Context {
                 .HasOne(b => b.Room)
                 .WithMany(r => r.Bookings)
                 .HasForeignKey(b => b.RoomId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Floor -> ClassRooms
+            modelBuilder.Entity<ClassRoom>()
+                .HasOne(r => r.Floor)
+                .WithMany(f => f.Rooms)
+                .HasForeignKey(r => r.FloorId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             // Maintenance -> ClassRoom
