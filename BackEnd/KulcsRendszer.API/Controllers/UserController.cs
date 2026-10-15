@@ -1,49 +1,77 @@
+using System;
+using System.Threading.Tasks;
 using KulcsRendszer.DataContext.Dtos;
 using KulcsRendszer.Services.Services;
 using Microsoft.AspNetCore.Mvc;
 
-[ApiController]
-[Route("api/[controller]")]
-public class UserController : ControllerBase {
-    private readonly IUserService _userService;
+namespace KulcsRendszer.Controllers {
 
-    public UserController(IUserService userService) {
-        _userService = userService;
-    }
+    [ApiController]
+    [Route("api/[controller]")]
+    public class UserController : ControllerBase {
+        private readonly IUserService _userService;
 
-    [HttpGet("{id}")]
-    public async Task<IActionResult> Get(int id) {
-        var result = await _userService.Get(id);
-        return Ok(result);
-    }
+        public UserController(IUserService userService) {
+            _userService = userService;
+        }
 
-    [HttpGet("info/{id}")]
-    public async Task<IActionResult> GetInfo(int id) {
-        var result = await _userService.GetInfo(id);
-        return Ok(result);
-    }
+        [HttpGet("{id}")]
+        public async Task<IActionResult> Get(int id) {
+            var user = await _userService.Get(id);
+            if (user == null) {
+                return NotFound($"User with this ID {id} is not found!");
+            }
+            return Ok(user);
+        }
 
-    [HttpPost("create")]
-    public async Task<IActionResult> Create(UserCreateDto userCreateDto) {
-        var result = await _userService.Create(userCreateDto);
-        return Ok(result);
-    }
+        [HttpGet("info/{id}")]
+        public async Task<IActionResult> GetInfo(int id) {
+            var userInfo = await _userService.GetInfo(id);
+            if (userInfo == null) {
+                return NotFound($"User with this ID {id} is not found!");
+            }
+            return Ok(userInfo);
+        }
 
-    [HttpPut("update/{id}")]
-    public async Task<IActionResult> Update(int id, UserUpdateDto userUpdateDto) {
-        var result = await _userService.Update(id, userUpdateDto);
-        return Ok(result);
-    }
+        [HttpPost("create")]
+        public async Task<IActionResult> Create([FromBody] UserCreateDto userCreateDto) {
+            var user = await _userService.Create(userCreateDto);
+            return CreatedAtAction(nameof(Get), new { id = user.Id }, user);
+        }
 
-    [HttpPost("change-password/{id}")]
-    public async Task<IActionResult> ChangePassword(int id, ChangePasswordDto changePasswordDto) {
-        await _userService.ChangePassword(id, changePasswordDto);
-        return Ok(new { message = "Password updated successfully." });
-    }
+        [HttpPut("update/{id}")]
+        public async Task<IActionResult> Update(int id, [FromBody] UserUpdateDto userUpdateDto) {
+            var updatedUser = await _userService.Update(id, userUpdateDto);
+            if (updatedUser == null) {
+                return NotFound($"User with this ID {id} is not found!");
+            }
+            return Ok(updatedUser);
+        }
 
-    [HttpDelete("{id}")]
-    public async Task<IActionResult> Delete(int id) {
-        await _userService.Delete(id);
-        return NoContent();
+        [HttpPost("change-password/{id}")]
+        public async Task<IActionResult> ChangePassword(int id, [FromBody] ChangePasswordDto changePasswordDto) {
+            try {
+                var success = await _userService.ChangePassword(id, changePasswordDto);
+                if (!success) {
+                    return NotFound($"User with this ID {id} is not found!");
+                }
+                return Ok(new { message = "Password updated successfully." });
+            }
+            catch (ArgumentException ex) {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (UnauthorizedAccessException ex) {
+                return StatusCode(401, new { message = ex.Message });
+            }
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(int id) {
+            var success = await _userService.Delete(id);
+            if (!success) {
+                return NotFound($"User with this ID {id} is not found!");
+            }
+            return NoContent();
+        }
     }
 }
