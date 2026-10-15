@@ -3,6 +3,10 @@ using KulcsRendszer.DataContext.Dtos;
 using Microsoft.EntityFrameworkCore;
 
 namespace KulcsRendszer.Services.Services {
+    public interface IRoomService {
+        Task<IReadOnlyList<RoomResponse>> GetByFloorAsync(int floorId, CancellationToken cancellationToken);
+    }
+
     public sealed class RoomService : IRoomService {
         private readonly KulcsRendszerDbContext _dbContext;
 

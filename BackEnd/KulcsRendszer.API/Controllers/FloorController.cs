@@ -12,14 +12,9 @@ namespace KulcsRendszer.API.Controllers {
             _roomService = roomService;
         }
 
-        /// <summary>
-        /// Lists the rooms assigned to a floor.
-        /// </summary>
         [HttpGet("{floorId:int}/rooms")]
         [ProducesResponseType(typeof(IReadOnlyList<RoomResponse>), StatusCodes.Status200OK)]
-        public async Task<ActionResult<IReadOnlyList<RoomResponse>>> GetRooms(
-            int floorId,
-            CancellationToken cancellationToken) {
+        public async Task<ActionResult<IReadOnlyList<RoomResponse>>> GetRooms(int floorId, CancellationToken cancellationToken) {
             if (floorId < 1) {
                 return BadRequest("The floor ID must be greater than zero.");
             }
