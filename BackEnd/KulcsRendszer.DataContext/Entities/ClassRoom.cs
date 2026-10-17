@@ -1,15 +1,10 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
 namespace KulcsRendszer.DataContext.Entities {
     public class ClassRoom {
 
         public string Id { get; set; } = "";
         public string Building { get; set; } = "";
-        public int Floor { get; set; }
+        public int FloorId { get; set; }
+        public Floor Floor { get; set; } = null!;
         public string Name { get; set; } = "";
         public int Capacity { get; set; }
         public string Equipment { get; set; } = "";

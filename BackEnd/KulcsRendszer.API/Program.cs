@@ -2,6 +2,8 @@
 using Microsoft.EntityFrameworkCore;
 using KulcsRendszer.DataContext.Context;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using KulcsRendszer.Services.Services;
+using KulcsRendszer.API.Middleware;
 
 namespace KulcsRendszer.API {
     public class Program {
@@ -30,6 +32,8 @@ namespace KulcsRendszer.API {
 
             builder.Services.AddDbContext<KulcsRendszerDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection") ?? "Server=db;Database=KulcsRendszerDB;User Id=sa;Password=YourPassword123!;TrustServerCertificate=true"));
+            builder.Services.AddScoped<IRoomService, RoomService>();
+
             //healthchek for database
             builder.Services.AddHealthChecks()
             .AddDbContextCheck<KulcsRendszerDbContext>();
