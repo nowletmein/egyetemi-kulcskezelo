@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using KulcsRendszer.DataContext.Context;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using KulcsRendszer.Services.Services;
+using KulcsRendszer.API.Middleware;
 
 namespace KulcsRendszer.API {
     public class Program {
@@ -36,6 +37,8 @@ namespace KulcsRendszer.API {
 
 
             var app = builder.Build();
+
+            app.UseMiddleware<ApiExceptionHandlingMiddleware>();
             
             // After app building:
             // Enable middleware to serve generated Swagger as a JSON endpoint and the Swagger UI

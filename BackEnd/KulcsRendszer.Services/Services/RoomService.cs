@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace KulcsRendszer.Services.Services {
     public interface IRoomService {
-        Task<IReadOnlyList<RoomResponse>> GetByFloorAsync(int floorId, CancellationToken cancellationToken);
+        Task<IReadOnlyList<RoomResponse>?> GetByFloorAsync(int floorId, CancellationToken cancellationToken);
     }
 
     public sealed class RoomService : IRoomService {
@@ -14,11 +14,17 @@ namespace KulcsRendszer.Services.Services {
             _dbContext = dbContext;
         }
 
-        public async Task<IReadOnlyList<RoomResponse>> GetByFloorAsync(
+        public async Task<IReadOnlyList<RoomResponse>?> GetByFloorAsync(
             int floorId,
             CancellationToken cancellationToken) {
+            var floorExists = await _dbContext.Floors
+                .AnyAsync(floor => floor.Id == floorId, cancellationToken);
+
+            if (!floorExists) {
+                return null;
+            }
+
             return await _dbContext.ClassRooms
-                .AsNoTracking()
                 .Where(room => room.FloorId == floorId)
                 .OrderBy(room => room.Name)
                 .Select(room => new RoomResponse(

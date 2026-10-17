@@ -1,5 +1,5 @@
 namespace KulcsRendszer.DataContext.Dtos {
-    public sealed record RoomResponse(
+    public record RoomResponse(
         string Id,
         string Building,
         int FloorId,
