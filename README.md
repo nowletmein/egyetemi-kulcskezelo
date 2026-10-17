@@ -97,6 +97,7 @@ erDiagram
     Users ||--o{ MasterKeyPermissions : "granted_to"
     Users ||--o{ MasterKeyPermissions : "granted_by"
 
+    Floors ||--o{ ClassRooms : "contains"
     ClassRooms ||--o{ Bookings : "booked_in"
     ClassRooms ||--o{ Maintenances : "maintained"
     ClassRooms ||--o{ IssueTickets : "reported_for"
@@ -133,10 +134,15 @@ erDiagram
         string SpecialRequest
     }
 
+    Floors {
+        int Id PK
+        int Number
+    }
+
     ClassRooms {
         string Id PK
         string Building
-        int Floor
+        int FloorId FK
         string Name
         int Capacity
         string Equipment
