@@ -202,4 +202,21 @@ erDiagram
     }
 ```
 
-Az adatbázis sémáját az API induláskor az EF Core migrációkkal frissíti. A korábban `EnsureCreated()`-del létrehozott, a régi terem- és emeletsémának megfelelő adatbázist az API automatikusan baseline-olja a migrációk előtt, majd átvezeti az új épületkapcsolatra. Frissítés előtt készíts adatbázis-mentést.
+## 6. API dokumentáció
+**Health**
+- GET /api/Health: A rendszer és az adatbázis-kapcsolat valós idejű állapotának lekérdezése. 
+
+**KulcsRendszer.API**
+- GET / : Alapértelmezett gyökér végpont az API futásának és elérhetőségének ellenőrzésére. 
+
+
+**User**
+- GET /api/User/{id} : Egy adott azonosítójú felhasználó alapvető adatainak lekérdezése. 
+- DELETE /api/User/{id} : Felhasználó törlése a rendszerből id alapján. 
+- POST /api/User/create : Új felhasználó regisztrációja / létrehozása a rendszerben. 
+- PUT /api/User/update/{id} : Meglévő felhasználó adatainak módosítása. 
+- POST /api/User/change-password/{id} : Felhasználó jelszavának biztonságos megváltoztatása. 
+
+
+**Floor**
+- GET /api/floors/{floorId}/rooms : Egy adott emelethez tartozó termek listájának és azok tulajdonságainak lekérdezése. 
