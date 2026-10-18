@@ -6,9 +6,9 @@ using System.Threading.Tasks;
 
 namespace KulcsRendszer.DataContext.Enums {
     public enum UserRole {
-        Oktato,
-        Portas,
-        Admin,
-        Igazgato
+        Instructor,
+        Operator,
+        Administrator,
+        OperationsDirector
     }
 }

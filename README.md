@@ -1,4 +1,35 @@
 # egyetemi-kulcskezelo
+
+## Quick start
+
+Copy `.env.example` to `.env` and replace every `CHANGE_ME` value with a local value. The JWT key must be at least 32 characters long.
+
+```bash
+copy .env.example .env
+docker compose up --build
+```
+
+The initial administrator can log in with:
+
+```http
+POST http://localhost:5000/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@example.com",
+  "password": "YOUR_INITIAL_ADMIN_PASSWORD"
+}
+```
+
+The response contains a JWT token for authenticated API requests.
+
+```mermaid
+graph LR
+    frontend[React frontend] -->|JWT over HTTPS| api[ASP.NET Core API]
+    api --> database[(SQL Server database)]
+    api --> auth[JWT authentication]
+    auth --> api
+```
 Egyetemi Kulcs- és Teremnyilvántartó Rendszer PROJEKT LABOR - 2026/27/1 Csoport munka
 
 ---

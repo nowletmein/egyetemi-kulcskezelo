@@ -34,10 +34,9 @@ namespace KulcsRendszer.DataContext.Dtos {
 
     public class UserInfoDto {
         public int Id { get; set; }
-        public int? RoleId { get; set; }
-        public Role? Role { get; set; }
         public string Name { get; set; } = "";
         public string Email { get; set; } = "";
+        public string? Role { get; set; }
     }
 
     public class ChangePasswordDto {

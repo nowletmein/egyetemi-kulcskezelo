@@ -1,0 +1,29 @@
+name: .NET
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  build-test-format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+      - name: Restore
+        run: dotnet restore BackEnd/KulcsRendszer.API/KulcsRendszer.API.csproj
+      - name: Build
+        run: dotnet build BackEnd/KulcsRendszer.API/KulcsRendszer.API.csproj --no-restore
+      - name: Test
+        run: dotnet test BackEnd/KulcsRendszer.Tests/KulcsRendszer.Tests.csproj --no-restore
+      - name: Install frontend dependencies
+        run: npm ci --prefix FrontEnd/kulcs-rendszer-frontend
+      - name: Check all
+        run: npm run check:all

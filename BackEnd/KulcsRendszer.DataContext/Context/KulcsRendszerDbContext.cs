@@ -17,6 +17,7 @@ namespace KulcsRendszer.DataContext.Context {
         public DbSet<Floor> Floors { get; set; }
         public DbSet<IssueTicket> IssueTickets { get; set; }
         public DbSet<MasterKeyPermission> MasterKeyPermissions { get; set; }
+        public DbSet<AuthAuditLog> AuthAuditLogs { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder) {
             base.OnModelCreating(modelBuilder);
@@ -121,13 +122,29 @@ namespace KulcsRendszer.DataContext.Context {
                 .HasForeignKey(u => u.RoleId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            modelBuilder.Entity<User>()
+                .HasIndex(u => u.Email)
+                .IsUnique();
+
             // Seed default roles using the UserRole enum
             modelBuilder.Entity<Role>().HasData(
-                new Role { Id = 1, Name = UserRole.Admin },
-                new Role { Id = 2, Name = UserRole.Portas },
-                new Role { Id = 3, Name = UserRole.Igazgato },
-                new Role { Id = 4, Name = UserRole.Oktato }
+                new Role { Id = 1, Name = UserRole.Administrator },
+                new Role { Id = 2, Name = UserRole.Operator },
+                new Role { Id = 3, Name = UserRole.OperationsDirector },
+                new Role { Id = 4, Name = UserRole.Instructor }
             );
+
+            modelBuilder.Entity<AuthAuditLog>()
+                .Property(log => log.EventType)
+                .HasMaxLength(64);
+
+            modelBuilder.Entity<AuthAuditLog>()
+                .Property(log => log.EmailIdentifier)
+                .HasMaxLength(320);
+
+            modelBuilder.Entity<AuthAuditLog>()
+                .Property(log => log.IpAddress)
+                .HasMaxLength(45);
         }
     }
 }

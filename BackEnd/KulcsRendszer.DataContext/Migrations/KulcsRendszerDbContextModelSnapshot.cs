@@ -37,6 +37,36 @@ namespace KulcsRendszer.DataContext.Migrations
                     b.ToTable("MasterKeyRooms", (string)null);
                 });
 
+            modelBuilder.Entity("KulcsRendszer.DataContext.Entities.AuthAuditLog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("EmailIdentifier")
+                        .IsRequired()
+                        .HasMaxLength(320)
+                        .HasColumnType("nvarchar(320)");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("IpAddress")
+                        .HasMaxLength(45)
+                        .HasColumnType("nvarchar(45)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("AuthAuditLogs");
+                });
+
             modelBuilder.Entity("KulcsRendszer.DataContext.Entities.Booking", b =>
                 {
                     b.Property<int>("Id")
@@ -301,22 +331,22 @@ namespace KulcsRendszer.DataContext.Migrations
                         new
                         {
                             Id = 1,
-                            Name = "Admin"
+                            Name = "Administrator"
                         },
                         new
                         {
                             Id = 2,
-                            Name = "Portas"
+                            Name = "Operator"
                         },
                         new
                         {
                             Id = 3,
-                            Name = "Igazgato"
+                            Name = "OperationsDirector"
                         },
                         new
                         {
                             Id = 4,
-                            Name = "Oktato"
+                            Name = "Instructor"
                         });
                 });
 
@@ -330,7 +360,7 @@ namespace KulcsRendszer.DataContext.Migrations
 
                     b.Property<string>("Email")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -344,6 +374,9 @@ namespace KulcsRendszer.DataContext.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Email")
+                        .IsUnique();
 
                     b.HasIndex("RoleId");
 

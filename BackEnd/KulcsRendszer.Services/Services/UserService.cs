@@ -6,11 +6,14 @@ using BCrypt.Net;
 using KulcsRendszer.DataContext.Context;
 using KulcsRendszer.DataContext.Dtos;
 using KulcsRendszer.DataContext.Entities;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 
 namespace KulcsRendszer.Services.Services {
 
     public interface IUserService {
+        Task<User?> Register(RegisterDto registerDto, CancellationToken cancellationToken);
+        Task<User?> Login(LoginDto loginDto, CancellationToken cancellationToken);
         Task<UserDto?> Get(int userId);
         Task<UserInfoDto?> GetInfo(int userId);
         Task<UserDto> Create(UserCreateDto userCreateDto);
@@ -19,11 +22,62 @@ namespace KulcsRendszer.Services.Services {
         Task<bool> Delete(int userId);
     }
 
+    public sealed class DuplicateEmailException : Exception {
+        public DuplicateEmailException() : base("A user with this email already exists.") {
+        }
+    }
+
     public class UserService : IUserService {
         private readonly KulcsRendszerDbContext _context;
 
         public UserService(KulcsRendszerDbContext context) {
             _context = context;
+        }
+
+        public async Task<User?> Register(RegisterDto registerDto, CancellationToken cancellationToken) {
+            var email = NormalizeEmail(registerDto.Email);
+            var exists = await _context.Users.AnyAsync(user => user.Email == email, cancellationToken);
+            if (exists) {
+                return null;
+            }
+
+            var user = new User {
+                Name = registerDto.Name.Trim(),
+                Email = email,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(registerDto.Password)
+            };
+
+            _context.Users.Add(user);
+            try {
+                await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateException exception) when (IsDuplicateEmailException(exception)) {
+                throw new DuplicateEmailException();
+            }
+
+            return user;
+        }
+
+        public async Task<User?> Login(LoginDto loginDto, CancellationToken cancellationToken) {
+            var email = NormalizeEmail(loginDto.Email);
+            var user = await _context.Users
+                .Include(item => item.Role)
+                .FirstOrDefaultAsync(item => item.Email == email, cancellationToken);
+
+            if (user == null || !BCrypt.Net.BCrypt.Verify(loginDto.Password, user.PasswordHash)) {
+                return null;
+            }
+
+            return user;
+        }
+
+        private static string NormalizeEmail(string email) {
+            return email.Trim().ToLowerInvariant();
+        }
+
+        private static bool IsDuplicateEmailException(DbUpdateException exception) {
+            return exception.InnerException is SqlException sqlException
+                && (sqlException.Number == 2601 || sqlException.Number == 2627);
         }
 
         private UserDto MapToUserDto(User user) {
@@ -64,10 +118,9 @@ namespace KulcsRendszer.Services.Services {
 
             return new UserInfoDto {
                 Id = user.Id,
-                RoleId = user.RoleId,
-                Role = user.Role,
                 Name = user.Name,
-                Email = user.Email
+                Email = user.Email,
+                Role = user.Role?.Name.ToString()
             };
         }
 

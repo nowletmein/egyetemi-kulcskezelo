@@ -12,8 +12,12 @@ services:
       - "1433:1433"
     volumes:
       - mssql_data:/var/opt/mssql/data
-  
-  
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$${MSSQL_SA_PASSWORD}\" -C -Q \"SELECT 1\" || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
 
   backend:
     build:
@@ -23,9 +27,13 @@ services:
       - "5000:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
+      - Jwt__Key=${Jwt__Key}
+      - InitialAdmin__Email=${InitialAdmin__Email}
+      - InitialAdmin__Password=${InitialAdmin__Password}
       - ConnectionStrings__DefaultConnection=Server=database,1433;Database=KulcsRendszerDb;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;
     depends_on:
-      - database
+      database:
+        condition: service_healthy
 
   frontend:
     build:
