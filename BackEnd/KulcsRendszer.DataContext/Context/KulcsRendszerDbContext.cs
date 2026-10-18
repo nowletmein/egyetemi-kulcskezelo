@@ -15,6 +15,7 @@ namespace KulcsRendszer.DataContext.Context {
         public DbSet<MasterKey> MasterKeys { get; set; }
         public DbSet<ClassRoom> ClassRooms { get; set; }
         public DbSet<Floor> Floors { get; set; }
+        public DbSet<Building> Buildings { get; set; }
         public DbSet<IssueTicket> IssueTickets { get; set; }
         public DbSet<MasterKeyPermission> MasterKeyPermissions { get; set; }
 
@@ -73,6 +74,33 @@ namespace KulcsRendszer.DataContext.Context {
                 .WithMany(f => f.Rooms)
                 .HasForeignKey(r => r.FloorId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            // Floor -> Building
+            modelBuilder.Entity<Floor>()
+                .HasOne(f => f.Building)
+                .WithMany(b => b.Floors)
+                .HasForeignKey(f => f.BuildingId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Floor>()
+                .HasIndex(f => new { f.BuildingId, f.Number })
+                .IsUnique();
+
+            modelBuilder.Entity<ClassRoom>()
+                .Property(r => r.Name)
+                .HasMaxLength(100);
+
+            modelBuilder.Entity<ClassRoom>()
+                .HasIndex(r => new { r.FloorId, r.Name })
+                .IsUnique();
+
+            modelBuilder.Entity<Building>()
+                .Property(b => b.BuildingCode)
+                .HasMaxLength(50);
+
+            modelBuilder.Entity<Building>()
+                .HasIndex(b => b.BuildingCode)
+                .IsUnique();
 
             // Maintenance -> ClassRoom
             modelBuilder.Entity<Maintenance>()

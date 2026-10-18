@@ -97,6 +97,7 @@ erDiagram
     Users ||--o{ MasterKeyPermissions : "granted_to"
     Users ||--o{ MasterKeyPermissions : "granted_by"
 
+    Buildings ||--o{ Floors : "contains"
     Floors ||--o{ ClassRooms : "contains"
     ClassRooms ||--o{ Bookings : "booked_in"
     ClassRooms ||--o{ Maintenances : "maintained"
@@ -134,14 +135,20 @@ erDiagram
         string SpecialRequest
     }
 
+    Buildings {
+        int Id PK
+        string BuildingCode UK
+        string BuildingName
+    }
+
     Floors {
         int Id PK
         int Number
+        int BuildingId FK
     }
 
     ClassRooms {
         string Id PK
-        string Building
         int FloorId FK
         string Name
         int Capacity
@@ -194,3 +201,5 @@ erDiagram
         datetime GrantedAt
     }
 ```
+
+Az adatbázis sémáját az API induláskor az EF Core migrációkkal frissíti. A korábban `EnsureCreated()`-del létrehozott, a régi terem- és emeletsémának megfelelő adatbázist az API automatikusan baseline-olja a migrációk előtt, majd átvezeti az új épületkapcsolatra. Frissítés előtt készíts adatbázis-mentést.
