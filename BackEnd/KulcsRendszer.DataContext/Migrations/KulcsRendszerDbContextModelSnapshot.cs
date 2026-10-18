@@ -75,14 +75,35 @@ namespace KulcsRendszer.DataContext.Migrations
                     b.ToTable("Bookings");
                 });
 
+            modelBuilder.Entity("KulcsRendszer.DataContext.Entities.Building", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("BuildingCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("BuildingName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BuildingCode")
+                        .IsUnique();
+
+                    b.ToTable("Buildings");
+                });
+
             modelBuilder.Entity("KulcsRendszer.DataContext.Entities.ClassRoom", b =>
                 {
                     b.Property<string>("Id")
                         .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("Building")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("Capacity")
                         .HasColumnType("int");
@@ -96,11 +117,13 @@ namespace KulcsRendszer.DataContext.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("FloorId");
+                    b.HasIndex("FloorId", "Name")
+                        .IsUnique();
 
                     b.ToTable("ClassRooms");
                 });
@@ -113,10 +136,16 @@ namespace KulcsRendszer.DataContext.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<int>("BuildingId")
+                        .HasColumnType("int");
+
                     b.Property<int>("Number")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("BuildingId", "Number")
+                        .IsUnique();
 
                     b.ToTable("Floors");
                 });
@@ -406,6 +435,17 @@ namespace KulcsRendszer.DataContext.Migrations
                     b.Navigation("Floor");
                 });
 
+            modelBuilder.Entity("KulcsRendszer.DataContext.Entities.Floor", b =>
+                {
+                    b.HasOne("KulcsRendszer.DataContext.Entities.Building", "Building")
+                        .WithMany("Floors")
+                        .HasForeignKey("BuildingId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Building");
+                });
+
             modelBuilder.Entity("KulcsRendszer.DataContext.Entities.IssueTicket", b =>
                 {
                     b.HasOne("KulcsRendszer.DataContext.Entities.Key", "Key")
@@ -526,6 +566,11 @@ namespace KulcsRendszer.DataContext.Migrations
             modelBuilder.Entity("KulcsRendszer.DataContext.Entities.Booking", b =>
                 {
                     b.Navigation("KeyMovements");
+                });
+
+            modelBuilder.Entity("KulcsRendszer.DataContext.Entities.Building", b =>
+                {
+                    b.Navigation("Floors");
                 });
 
             modelBuilder.Entity("KulcsRendszer.DataContext.Entities.ClassRoom", b =>

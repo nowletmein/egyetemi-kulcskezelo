@@ -6,8 +6,10 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace KulcsRendszer.API {
     public class Program {
-        public static void Main(string[] args) {
+        private const string BuildingMigrationId = "20261018095009_AddBuildingFloorRelationship";
+        private const string FloorRoomMigrationId = "20261014121157_AddFloorRoomRelationship";
 
+        public static async Task Main(string[] args) {
             var builder = WebApplication.CreateBuilder(args);
             builder.Services.AddCors(options => {
                 options.AddPolicy("ReactPolicy", policy => {
