@@ -39,3 +39,5 @@ jobs:
 
       - name: Build and start Docker stack
         run: docker compose up --build -d
+      - name: Run unit tests
+        run: dotnet test --verbosity normal
