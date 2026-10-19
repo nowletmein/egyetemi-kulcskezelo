@@ -25,14 +25,14 @@ namespace KulcsRendszer.API {
 
             //controllers
             builder.Services.AddScoped<IUserService, UserService>();
-
+            builder.Services.AddScoped<IRoomService, RoomService>();
             //database service
             //builder.Services.AddDbContext<KulcsRendszerDbContext>(options =>
             //options.UseSqlServer(@"Server=(localdb)\mssqllocaldb;Database=KulcsRendszerDB;Trusted_Connection=True;TrustServerCertificate=true"));
 
             builder.Services.AddDbContext<KulcsRendszerDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection") ?? "Server=db;Database=KulcsRendszerDB;User Id=sa;Password=YourPassword123!;TrustServerCertificate=true"));
-            builder.Services.AddScoped<IRoomService, RoomService>();
+            options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection") ?? "Server=db;Database=KulcsRendszerDB;User Id=sa;Password=YourPassword123!;TrustServerCertificate=true"));
+
 
             //healthchek for database
             builder.Services.AddHealthChecks()
@@ -55,13 +55,14 @@ namespace KulcsRendszer.API {
             using (var scope = app.Services.CreateScope()) {
                 try {
                     var dbContext = scope.ServiceProvider.GetRequiredService<KulcsRendszerDbContext>();
-                    dbContext.Database.EnsureCreated(); // vagy dbContext.Database.Migrate();
-                } catch (Exception) {
-                    Console.WriteLine("Adatbázis már létezik");
+                    dbContext.Database.Migrate();
                 }
-                //}
-                app.Run();
+                catch (Exception ex) {
+                    Console.WriteLine($"Adatbázis migrácó hiba: {ex.Message}");
+                }
             }
+
+            app.Run();
         }
     }
 }
