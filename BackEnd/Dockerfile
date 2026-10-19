@@ -5,6 +5,7 @@ COPY ["KulcsRendszer.slnx", "./"]
 COPY ["KulcsRendszer.API/KulcsRendszer.API.csproj", "KulcsRendszer.API/"]
 COPY ["KulcsRendszer.DataContext/KulcsRendszer.DataContext.csproj", "KulcsRendszer.DataContext/"]
 COPY ["KulcsRendszer.Services/KulcsRendszer.Services.csproj", "KulcsRendszer.Services/"]
+COPY ["KulcsRendszer.Tests/KulcsRendszer.Tests.csproj", "KulcsRendszer.Tests/"]
 
 RUN dotnet restore "KulcsRendszer.slnx"
 
