@@ -1,43 +1,23 @@
-﻿using DotNetEnv;
-using KulcsRendszer.DataContext.Context;
+﻿using KulcsRendszer.DataContext.Context;
 using KulcsRendszer.DataContext.Entities;
 using KulcsRendszer.Services.Services;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
 
 public class UserServiceTests : IAsyncLifetime {
-    private KulcsRendszerDbContext _context;
-
-
+    private KulcsRendszerDbContext _context = null!;
 
     public async Task InitializeAsync() {
-
-
-
-        var projectRoot = Path.Combine(AppContext.BaseDirectory, "../../../../../");
-        var envPath = Path.GetFullPath(Path.Combine(projectRoot, ".env"));
-
-        // Betöltjük az explicit útvonalon lévő fájlt
-        Env.Load(envPath);
-        // Most már kiolvashatod a változót:
-        var password = Environment.GetEnvironmentVariable("MSSQL_SA_PASSWORD");
-
-        var connectionString = $"Server=localhost,1433;Database=KulcsRendszerDB;User Id=sa;Password={password};TrustServerCertificate=True;";
-
-
-
+        // Egyedi név minden tesztfuttatáshoz, hogy tiszta adatbázisból induljon
         var options = new DbContextOptionsBuilder<KulcsRendszerDbContext>()
-            .UseSqlServer(connectionString)
+            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
             .Options;
 
         _context = new KulcsRendszerDbContext(options);
 
-        await _context.Database.EnsureCreatedAsync();
-
-        _context.Users.RemoveRange(_context.Users);
-        await _context.SaveChangesAsync();
+        // Nem kell már EnsureCreatedAsync vagy külső kapcsolódás, az InMemory azonnal kész van
+        await Task.CompletedTask;
     }
-
 
     public async Task DisposeAsync() {
         if (_context != null) {
@@ -58,7 +38,6 @@ public class UserServiceTests : IAsyncLifetime {
         var service = new UserService(_context);
 
         // Act
-        // Ha az Id Identity/AutoIncrement mező, a beszúrás után az EF Core kitölti a generált Id-t
         var insertedUser = await _context.Users.FirstAsync(u => u.Email == "anna@example.com");
         var result = await service.GetInfo(insertedUser.Id);
 
