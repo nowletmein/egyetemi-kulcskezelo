@@ -1,11 +1,11 @@
+using KulcsRendszer.API.Middleware;
 <<<<<<< HEAD
 <<<<<<< HEAD
-﻿using KulcsRendszer.DataContext.Context;
+using KulcsRendszer.DataContext.Context;
+using KulcsRendszer.Services.Services;
 using KulcsRendszer.Services.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
-using KulcsRendszer.Services.Services;
-using KulcsRendszer.API.Middleware;
 =======
 ﻿using DotNetEnv;
 using KulcsRendszer.DataContext.Context;
