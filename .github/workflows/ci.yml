@@ -27,6 +27,9 @@ jobs:
       - name: Install root dependencies
         run: npm install
 
+      - name: Install Frontend Dependencies
+        run: npm ci --prefix FrontEnd/kulcs-rendszer-frontend
+
       - name: Run style checks
         run: npm run check:all
 
