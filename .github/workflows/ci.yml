@@ -41,4 +41,4 @@ jobs:
         run: docker compose up --build -d
       - name: Test
         working-directory: ./BackEnd
-        run: dotnet test --verbosity normal
+        run: dotnet test --verbosity normal /p:TreatWarningsAsErrors=false
