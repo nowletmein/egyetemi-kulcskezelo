@@ -3,6 +3,7 @@ using KulcsRendszer.DataContext.Entities;
 using KulcsRendszer.Services.Services;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
+using DotNetEnv;
 
 public class UserServiceTests : IAsyncLifetime {
     private KulcsRendszerDbContext _context;
@@ -10,8 +11,20 @@ public class UserServiceTests : IAsyncLifetime {
 
 
     public async Task InitializeAsync() {
-        var connectionString = Environment.GetEnvironmentVariable("DB_CONNECTION_STRING")
-            ?? "Server=localhost,1433;Database=KulcsRendszerDB;User Id=sa;Password=YourPassword123!;TrustServerCertificate=True;";
+
+
+        
+        var projectRoot = Path.Combine(AppContext.BaseDirectory, "../../../../../");
+        var envPath = Path.GetFullPath(Path.Combine(projectRoot, ".env"));
+
+        // Betöltjük az explicit útvonalon lévő fájlt
+        Env.Load(envPath);
+        // Most már kiolvashatod a változót:
+        var password = Environment.GetEnvironmentVariable("MSSQL_SA_PASSWORD");
+
+        var connectionString = $"Server=localhost,1433;Database=KulcsRendszerDB;User Id=sa;Password={password};TrustServerCertificate=True;";
+       
+        
 
         var options = new DbContextOptionsBuilder<KulcsRendszerDbContext>()
             .UseSqlServer(connectionString)
