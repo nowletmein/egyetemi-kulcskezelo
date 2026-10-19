@@ -1,8 +1,9 @@
 <Solution>
-  <Project Path="KulcsRendszer.DataContext/KulcsRendszer.DataContext.csproj" Id="ca6dc4d9-eebc-48a6-94ba-e6f671ba01b3" />
-  <Project Path="KulcsRendszer.Services/KulcsRendszer.Services.csproj" Id="9a210e2c-680c-4254-8fa9-74b3680e1be6" />
   <Project Path="KulcsRendszer.API/KulcsRendszer.API.csproj">
     <BuildDependency Project="KulcsRendszer.DataContext/KulcsRendszer.DataContext.csproj" />
     <BuildDependency Project="KulcsRendszer.Services/KulcsRendszer.Services.csproj" />
   </Project>
+  <Project Path="KulcsRendszer.DataContext/KulcsRendszer.DataContext.csproj" Id="ca6dc4d9-eebc-48a6-94ba-e6f671ba01b3" />
+  <Project Path="KulcsRendszer.Services/KulcsRendszer.Services.csproj" Id="9a210e2c-680c-4254-8fa9-74b3680e1be6" />
+  <Project Path="KulcsRendszer.Tests/KulcsRendszer.Tests.csproj" Id="2742f4cf-4cb5-4e7c-81f2-a3e45a5de83a" />
 </Solution>
