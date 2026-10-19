@@ -1,9 +1,9 @@
-﻿using KulcsRendszer.DataContext.Context;
+﻿using DotNetEnv;
+using KulcsRendszer.DataContext.Context;
 using KulcsRendszer.DataContext.Entities;
 using KulcsRendszer.Services.Services;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
-using DotNetEnv;
 
 public class UserServiceTests : IAsyncLifetime {
     private KulcsRendszerDbContext _context;
@@ -13,7 +13,7 @@ public class UserServiceTests : IAsyncLifetime {
     public async Task InitializeAsync() {
 
 
-        
+
         var projectRoot = Path.Combine(AppContext.BaseDirectory, "../../../../../");
         var envPath = Path.GetFullPath(Path.Combine(projectRoot, ".env"));
 
@@ -23,8 +23,8 @@ public class UserServiceTests : IAsyncLifetime {
         var password = Environment.GetEnvironmentVariable("MSSQL_SA_PASSWORD");
 
         var connectionString = $"Server=localhost,1433;Database=KulcsRendszerDB;User Id=sa;Password={password};TrustServerCertificate=True;";
-       
-        
+
+
 
         var options = new DbContextOptionsBuilder<KulcsRendszerDbContext>()
             .UseSqlServer(connectionString)
