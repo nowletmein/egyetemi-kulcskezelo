@@ -4,14 +4,11 @@
 
 #pragma warning disable CA1814 // Prefer jagged arrays over multidimensional
 
-namespace KulcsRendszer.DataContext.Migrations
-{
+namespace KulcsRendszer.DataContext.Migrations {
     /// <inheritdoc />
-    public partial class AddedRoleEntity : Migration
-    {
+    public partial class AddedRoleEntity : Migration {
         /// <inheritdoc />
-        protected override void Up(MigrationBuilder migrationBuilder)
-        {
+        protected override void Up(MigrationBuilder migrationBuilder) {
             migrationBuilder.RenameColumn(
                 name: "Role",
                 table: "Users",
@@ -19,14 +16,12 @@ namespace KulcsRendszer.DataContext.Migrations
 
             migrationBuilder.CreateTable(
                 name: "Roles",
-                columns: table => new
-                {
+                columns: table => new {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false)
                 },
-                constraints: table =>
-                {
+                constraints: table => {
                     table.PrimaryKey("PK_Roles", x => x.Id);
                 });
 
@@ -56,8 +51,7 @@ namespace KulcsRendszer.DataContext.Migrations
         }
 
         /// <inheritdoc />
-        protected override void Down(MigrationBuilder migrationBuilder)
-        {
+        protected override void Down(MigrationBuilder migrationBuilder) {
             migrationBuilder.DropForeignKey(
                 name: "FK_Users_Roles_RoleId",
                 table: "Users");

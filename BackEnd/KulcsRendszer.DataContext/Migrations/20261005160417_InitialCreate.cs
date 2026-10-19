@@ -3,18 +3,14 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace KulcsRendszer.DataContext.Migrations
-{
+namespace KulcsRendszer.DataContext.Migrations {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
-    {
+    public partial class InitialCreate : Migration {
         /// <inheritdoc />
-        protected override void Up(MigrationBuilder migrationBuilder)
-        {
+        protected override void Up(MigrationBuilder migrationBuilder) {
             migrationBuilder.CreateTable(
                 name: "ClassRooms",
-                columns: table => new
-                {
+                columns: table => new {
                     Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     Building = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Floor = table.Column<int>(type: "int", nullable: false),
@@ -22,15 +18,13 @@ namespace KulcsRendszer.DataContext.Migrations
                     Capacity = table.Column<int>(type: "int", nullable: false),
                     Equipment = table.Column<string>(type: "nvarchar(max)", nullable: false)
                 },
-                constraints: table =>
-                {
+                constraints: table => {
                     table.PrimaryKey("PK_ClassRooms", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
                 name: "Users",
-                columns: table => new
-                {
+                columns: table => new {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Role = table.Column<int>(type: "int", nullable: false),
@@ -38,23 +32,20 @@ namespace KulcsRendszer.DataContext.Migrations
                     Email = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     PasswordHash = table.Column<string>(type: "nvarchar(max)", nullable: false)
                 },
-                constraints: table =>
-                {
+                constraints: table => {
                     table.PrimaryKey("PK_Users", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
                 name: "Keys",
-                columns: table => new
-                {
+                columns: table => new {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     RoomId = table.Column<string>(type: "nvarchar(450)", nullable: true),
                     KeyType = table.Column<string>(type: "nvarchar(8)", maxLength: 8, nullable: false),
                     MasterKeyName = table.Column<string>(type: "nvarchar(max)", nullable: true)
                 },
-                constraints: table =>
-                {
+                constraints: table => {
                     table.PrimaryKey("PK_Keys", x => x.Id);
                     table.ForeignKey(
                         name: "FK_Keys_ClassRooms_RoomId",
@@ -66,8 +57,7 @@ namespace KulcsRendszer.DataContext.Migrations
 
             migrationBuilder.CreateTable(
                 name: "Bookings",
-                columns: table => new
-                {
+                columns: table => new {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     UserId = table.Column<int>(type: "int", nullable: false),
@@ -77,8 +67,7 @@ namespace KulcsRendszer.DataContext.Migrations
                     Status = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     SpecialRequest = table.Column<string>(type: "nvarchar(max)", nullable: false)
                 },
-                constraints: table =>
-                {
+                constraints: table => {
                     table.PrimaryKey("PK_Bookings", x => x.Id);
                     table.ForeignKey(
                         name: "FK_Bookings_ClassRooms_RoomId",
@@ -96,8 +85,7 @@ namespace KulcsRendszer.DataContext.Migrations
 
             migrationBuilder.CreateTable(
                 name: "Maintenances",
-                columns: table => new
-                {
+                columns: table => new {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     RoomId = table.Column<string>(type: "nvarchar(450)", nullable: false),
@@ -105,8 +93,7 @@ namespace KulcsRendszer.DataContext.Migrations
                     StartTime = table.Column<DateTime>(type: "datetime2", nullable: false),
                     EndTime = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
-                constraints: table =>
-                {
+                constraints: table => {
                     table.PrimaryKey("PK_Maintenances", x => x.Id);
                     table.ForeignKey(
                         name: "FK_Maintenances_ClassRooms_RoomId",
@@ -124,13 +111,11 @@ namespace KulcsRendszer.DataContext.Migrations
 
             migrationBuilder.CreateTable(
                 name: "ClassRoomMasterKey",
-                columns: table => new
-                {
+                columns: table => new {
                     AccessibleRoomsId = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     MasterKeyId = table.Column<int>(type: "int", nullable: false)
                 },
-                constraints: table =>
-                {
+                constraints: table => {
                     table.PrimaryKey("PK_ClassRoomMasterKey", x => new { x.AccessibleRoomsId, x.MasterKeyId });
                     table.ForeignKey(
                         name: "FK_ClassRoomMasterKey_ClassRooms_AccessibleRoomsId",
@@ -148,8 +133,7 @@ namespace KulcsRendszer.DataContext.Migrations
 
             migrationBuilder.CreateTable(
                 name: "IssueTickets",
-                columns: table => new
-                {
+                columns: table => new {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     KeyId = table.Column<int>(type: "int", nullable: true),
@@ -158,8 +142,7 @@ namespace KulcsRendszer.DataContext.Migrations
                     Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Status = table.Column<string>(type: "nvarchar(max)", nullable: false)
                 },
-                constraints: table =>
-                {
+                constraints: table => {
                     table.PrimaryKey("PK_IssueTickets", x => x.Id);
                     table.ForeignKey(
                         name: "FK_IssueTickets_ClassRooms_RoomId",
@@ -183,8 +166,7 @@ namespace KulcsRendszer.DataContext.Migrations
 
             migrationBuilder.CreateTable(
                 name: "MasterKeyPermissions",
-                columns: table => new
-                {
+                columns: table => new {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     UserId = table.Column<int>(type: "int", nullable: false),
@@ -192,8 +174,7 @@ namespace KulcsRendszer.DataContext.Migrations
                     GrantedByAdminId = table.Column<int>(type: "int", nullable: false),
                     GrantedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
-                constraints: table =>
-                {
+                constraints: table => {
                     table.PrimaryKey("PK_MasterKeyPermissions", x => x.Id);
                     table.ForeignKey(
                         name: "FK_MasterKeyPermissions_Keys_KeyId",
@@ -217,8 +198,7 @@ namespace KulcsRendszer.DataContext.Migrations
 
             migrationBuilder.CreateTable(
                 name: "KeyMovements",
-                columns: table => new
-                {
+                columns: table => new {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     KeyId = table.Column<int>(type: "int", nullable: false),
@@ -227,8 +207,7 @@ namespace KulcsRendszer.DataContext.Migrations
                     Timestamp = table.Column<DateTime>(type: "datetime2", nullable: false),
                     IdentificationMethod = table.Column<string>(type: "nvarchar(max)", nullable: false)
                 },
-                constraints: table =>
-                {
+                constraints: table => {
                     table.PrimaryKey("PK_KeyMovements", x => x.Id);
                     table.ForeignKey(
                         name: "FK_KeyMovements_Bookings_BookingId",
@@ -326,8 +305,7 @@ namespace KulcsRendszer.DataContext.Migrations
         }
 
         /// <inheritdoc />
-        protected override void Down(MigrationBuilder migrationBuilder)
-        {
+        protected override void Down(MigrationBuilder migrationBuilder) {
             migrationBuilder.DropTable(
                 name: "ClassRoomMasterKey");
 

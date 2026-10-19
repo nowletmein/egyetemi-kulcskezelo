@@ -2,14 +2,11 @@
 
 #nullable disable
 
-namespace KulcsRendszer.DataContext.Migrations
-{
+namespace KulcsRendszer.DataContext.Migrations {
     /// <inheritdoc />
-    public partial class RenameMasterKeyJoinTable : Migration
-    {
+    public partial class RenameMasterKeyJoinTable : Migration {
         /// <inheritdoc />
-        protected override void Up(MigrationBuilder migrationBuilder)
-        {
+        protected override void Up(MigrationBuilder migrationBuilder) {
             migrationBuilder.DropForeignKey(
                 name: "FK_ClassRoomMasterKey_ClassRooms_AccessibleRoomsId",
                 table: "ClassRoomMasterKey");
@@ -54,8 +51,7 @@ namespace KulcsRendszer.DataContext.Migrations
         }
 
         /// <inheritdoc />
-        protected override void Down(MigrationBuilder migrationBuilder)
-        {
+        protected override void Down(MigrationBuilder migrationBuilder) {
             migrationBuilder.DropForeignKey(
                 name: "FK_MasterKeyRooms_ClassRooms_AccessibleRoomsId",
                 table: "MasterKeyRooms");

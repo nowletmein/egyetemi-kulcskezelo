@@ -1,14 +1,14 @@
-﻿using Microsoft.EntityFrameworkCore;
-using KulcsRendszer.DataContext.Context;
+﻿using KulcsRendszer.DataContext.Context;
 using KulcsRendszer.DataContext.Entities;
 using KulcsRendszer.Services.Services;
+using Microsoft.EntityFrameworkCore;
 using Xunit;
 
 public class UserServiceTests : IAsyncLifetime {
     private KulcsRendszerDbContext _context;
-    
 
-    
+
+
     public async Task InitializeAsync() {
         var connectionString = Environment.GetEnvironmentVariable("DB_CONNECTION_STRING")
             ?? "Server=localhost,1433;Database=KulcsRendszerDB;User Id=sa;Password=YourPassword123!;TrustServerCertificate=True;";
@@ -25,7 +25,7 @@ public class UserServiceTests : IAsyncLifetime {
         await _context.SaveChangesAsync();
     }
 
-    
+
     public async Task DisposeAsync() {
         if (_context != null) {
             await _context.DisposeAsync();

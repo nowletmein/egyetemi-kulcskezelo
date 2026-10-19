@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace KulcsRendszer.DataContext.Entities {
     public class Maintenance {
         public int Id { get; set; }
-        
+
         public string RoomId { get; set; }
         public ClassRoom Room { get; set; }
 
