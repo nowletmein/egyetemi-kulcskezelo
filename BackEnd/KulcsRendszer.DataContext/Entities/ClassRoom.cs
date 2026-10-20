@@ -1,3 +1,4 @@
+
 namespace KulcsRendszer.DataContext.Entities {
     public class ClassRoom {
 
@@ -15,3 +16,4 @@ namespace KulcsRendszer.DataContext.Entities {
         public ICollection<Key> Keys { get; set; } = new List<Key>();
     }
 }
+

@@ -10,13 +10,13 @@ namespace KulcsRendszer.DataContext.Entities {
 
         public int KeyId { get; set; }
         public Key Key { get; set; } = null!;
-        
+
         public int UserId { get; set; }
         public User User { get; set; } = null!;
-        
+
         public int? BookingId { get; set; }
         public Booking? Booking { get; set; }
-        
+
         public DateTime Timestamp { get; set; }
         public string IdentificationMethod { get; set; } = "";
     }

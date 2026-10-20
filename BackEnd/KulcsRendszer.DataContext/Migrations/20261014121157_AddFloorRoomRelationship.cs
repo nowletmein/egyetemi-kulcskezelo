@@ -2,14 +2,11 @@
 
 #nullable disable
 
-namespace KulcsRendszer.DataContext.Migrations
-{
+namespace KulcsRendszer.DataContext.Migrations {
     /// <inheritdoc />
-    public partial class AddFloorRoomRelationship : Migration
-    {
+    public partial class AddFloorRoomRelationship : Migration {
         /// <inheritdoc />
-        protected override void Up(MigrationBuilder migrationBuilder)
-        {
+        protected override void Up(MigrationBuilder migrationBuilder) {
             migrationBuilder.RenameColumn(
                 name: "Floor",
                 table: "ClassRooms",
@@ -17,14 +14,12 @@ namespace KulcsRendszer.DataContext.Migrations
 
             migrationBuilder.CreateTable(
                 name: "Floors",
-                columns: table => new
-                {
+                columns: table => new {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Number = table.Column<int>(type: "int", nullable: false)
                 },
-                constraints: table =>
-                {
+                constraints: table => {
                     table.PrimaryKey("PK_Floors", x => x.Id);
                 });
 
@@ -56,8 +51,7 @@ namespace KulcsRendszer.DataContext.Migrations
         }
 
         /// <inheritdoc />
-        protected override void Down(MigrationBuilder migrationBuilder)
-        {
+        protected override void Down(MigrationBuilder migrationBuilder) {
             migrationBuilder.DropForeignKey(
                 name: "FK_ClassRooms_Floors_FloorId",
                 table: "ClassRooms");

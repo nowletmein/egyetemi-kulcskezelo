@@ -1,4 +1,5 @@
-﻿using KulcsRendszer.DataContext.Entities;
+
+using KulcsRendszer.DataContext.Entities;
 using KulcsRendszer.DataContext.Enums;
 using Microsoft.EntityFrameworkCore;
 
