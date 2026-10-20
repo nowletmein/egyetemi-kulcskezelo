@@ -97,6 +97,7 @@ erDiagram
     Users ||--o{ MasterKeyPermissions : "granted_to"
     Users ||--o{ MasterKeyPermissions : "granted_by"
 
+    Buildings ||--o{ Floors : "contains"
     Floors ||--o{ ClassRooms : "contains"
     ClassRooms ||--o{ Bookings : "booked_in"
     ClassRooms ||--o{ Maintenances : "maintained"
@@ -134,14 +135,20 @@ erDiagram
         string SpecialRequest
     }
 
+    Buildings {
+        int Id PK
+        string BuildingCode UK
+        string BuildingName
+    }
+
     Floors {
         int Id PK
         int Number
+        int BuildingId FK
     }
 
     ClassRooms {
         string Id PK
-        string Building
         int FloorId FK
         string Name
         int Capacity
@@ -194,3 +201,22 @@ erDiagram
         datetime GrantedAt
     }
 ```
+
+## 6. API dokumentáció
+**Health**
+- GET /api/Health: A rendszer és az adatbázis-kapcsolat valós idejű állapotának lekérdezése. 
+
+**KulcsRendszer.API**
+- GET / : Alapértelmezett gyökér végpont az API futásának és elérhetőségének ellenőrzésére. 
+
+
+**User**
+- GET /api/User/{id} : Egy adott azonosítójú felhasználó alapvető adatainak lekérdezése. 
+- DELETE /api/User/{id} : Felhasználó törlése a rendszerből id alapján. 
+- POST /api/User/create : Új felhasználó regisztrációja / létrehozása a rendszerben. 
+- PUT /api/User/update/{id} : Meglévő felhasználó adatainak módosítása. 
+- POST /api/User/change-password/{id} : Felhasználó jelszavának biztonságos megváltoztatása. 
+
+
+**Floor**
+- GET /api/floors/{floorId}/rooms : Egy adott emelethez tartozó termek listájának és azok tulajdonságainak lekérdezése. 

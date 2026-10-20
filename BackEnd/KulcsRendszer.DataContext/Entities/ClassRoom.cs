@@ -3,7 +3,6 @@ namespace KulcsRendszer.DataContext.Entities {
     public class ClassRoom {
 
         public string Id { get; set; } = "";
-        public string Building { get; set; } = "";
         public int FloorId { get; set; }
         public Floor Floor { get; set; } = null!;
         public string Name { get; set; } = "";

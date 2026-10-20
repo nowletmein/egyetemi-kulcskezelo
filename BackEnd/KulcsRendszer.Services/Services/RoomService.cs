@@ -29,7 +29,7 @@ namespace KulcsRendszer.Services.Services {
                 .OrderBy(room => room.Name)
                 .Select(room => new RoomResponse(
                     room.Id,
-                    room.Building,
+                    room.Floor.Building.BuildingName,
                     room.FloorId,
                     room.Name,
                     room.Capacity,
