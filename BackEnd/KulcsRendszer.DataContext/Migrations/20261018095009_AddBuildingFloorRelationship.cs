@@ -2,29 +2,24 @@
 
 #nullable disable
 
-namespace KulcsRendszer.DataContext.Migrations
-{
+namespace KulcsRendszer.DataContext.Migrations {
     /// <inheritdoc />
-    public partial class AddBuildingFloorRelationship : Migration
-    {
+    public partial class AddBuildingFloorRelationship : Migration {
         /// <inheritdoc />
-        protected override void Up(MigrationBuilder migrationBuilder)
-        {
+        protected override void Up(MigrationBuilder migrationBuilder) {
             migrationBuilder.DropIndex(
                 name: "IX_ClassRooms_FloorId",
                 table: "ClassRooms");
 
             migrationBuilder.CreateTable(
                 name: "Buildings",
-                columns: table => new
-                {
+                columns: table => new {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     BuildingCode = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     BuildingName = table.Column<string>(type: "nvarchar(max)", nullable: false)
                 },
-                constraints: table =>
-                {
+                constraints: table => {
                     table.PrimaryKey("PK_Buildings", x => x.Id);
                 });
 
@@ -124,8 +119,7 @@ namespace KulcsRendszer.DataContext.Migrations
         }
 
         /// <inheritdoc />
-        protected override void Down(MigrationBuilder migrationBuilder)
-        {
+        protected override void Down(MigrationBuilder migrationBuilder) {
             migrationBuilder.DropIndex(
                 name: "IX_Floors_BuildingId_Number",
                 table: "Floors");
