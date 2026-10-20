@@ -1,35 +1,47 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 
 export default function UserProfile({ user }) {
   const [isEditingData, setIsEditingData] = useState(false);
-  const [name, setName] = useState('Kovács Balázs');
-  const [email, setEmail] = useState(user?.email || 'user@uni-pannon.hu');
+  const [name, setName] = useState("Kovács Balázs");
+  const [email, setEmail] = useState(user?.email || "user@uni-pannon.hu");
 
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   const tickets = [
-    { id: '#TK-1024', room: 'I.101', issue: 'Sérült HDMI kábel a projektorhoz', status: 'Folyamatban', date: '2026.10.12' },
-    { id: '#TK-0891', room: 'A.204', issue: 'Hiányzó projektor távirányító', status: 'Megoldva', date: '2026.09.28' },
+    {
+      id: "#TK-1024",
+      room: "I.101",
+      issue: "Sérült HDMI kábel a projektorhoz",
+      status: "Folyamatban",
+      date: "2026.10.12",
+    },
+    {
+      id: "#TK-0891",
+      room: "A.204",
+      issue: "Hiányzó projektor távirányító",
+      status: "Megoldva",
+      date: "2026.09.28",
+    },
   ];
 
   const handleSaveData = (e) => {
     e.preventDefault();
     setIsEditingData(false);
-    alert('Személyes adatok sikeresen frissítve!');
+    alert("Személyes adatok sikeresen frissítve!");
   };
 
   const handlePasswordChange = (e) => {
     e.preventDefault();
     if (newPassword !== confirmPassword) {
-      alert('A megadott új jelszavak nem egyeznek!');
+      alert("A megadott új jelszavak nem egyeznek!");
       return;
     }
-    alert('Jelszó sikeresen megváltoztatva!');
-    setCurrentPassword('');
-    setNewPassword('');
-    setConfirmPassword('');
+    alert("Jelszó sikeresen megváltoztatva!");
+    setCurrentPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
   };
 
   return (
@@ -46,7 +58,13 @@ export default function UserProfile({ user }) {
               <div className="section-title-header">
                 <h3>Személyes adatok</h3>
                 {!isEditingData && (
-                  <button type="button" className="secondary-btn" onClick={() => setIsEditingData(true)}>Adatok módosítása</button>
+                  <button
+                    type="button"
+                    className="secondary-btn"
+                    onClick={() => setIsEditingData(true)}
+                  >
+                    Adatok módosítása
+                  </button>
                 )}
               </div>
 
@@ -54,15 +72,35 @@ export default function UserProfile({ user }) {
                 <form onSubmit={handleSaveData} className="edit-form">
                   <div className="form-group">
                     <label htmlFor="edit-name">Teljes név</label>
-                    <input type="text" id="edit-name" value={name} onChange={(e) => setName(e.target.value)} required/>
+                    <input
+                      type="text"
+                      id="edit-name"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      required
+                    />
                   </div>
                   <div className="form-group">
                     <label htmlFor="edit-email">E-mail cím</label>
-                    <input type="email" id="edit-email" value={email} onChange={(e) => setEmail(e.target.value)} required/>
+                    <input
+                      type="email"
+                      id="edit-email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                    />
                   </div>
                   <div className="form-actions-inline">
-                    <button type="submit" className="primary-btn">Mentés</button>
-                    <button type="button" className="cancel-btn" onClick={() => setIsEditingData(false)}>Mégse</button>
+                    <button type="submit" className="primary-btn">
+                      Mentés
+                    </button>
+                    <button
+                      type="button"
+                      className="cancel-btn"
+                      onClick={() => setIsEditingData(false)}
+                    >
+                      Mégse
+                    </button>
                   </div>
                 </form>
               ) : (
@@ -84,19 +122,41 @@ export default function UserProfile({ user }) {
               <form onSubmit={handlePasswordChange} className="password-form">
                 <div className="form-group">
                   <label htmlFor="current-pass">Jelenlegi jelszó</label>
-                  <input type="password" id="current-pass" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} required/>
+                  <input
+                    type="password"
+                    id="current-pass"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    required
+                  />
                 </div>
                 <div className="form-row">
                   <div className="form-group">
                     <label htmlFor="new-pass">Új jelszó</label>
-                    <input type="password" id="new-pass" placeholder="Új jelszó" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required/>
+                    <input
+                      type="password"
+                      id="new-pass"
+                      placeholder="Új jelszó"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      required
+                    />
                   </div>
                   <div className="form-group">
                     <label htmlFor="confirm-pass">Új jelszó megerősítése</label>
-                    <input type="password" id="confirm-pass" placeholder="Új jelszó újra" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required/>
+                    <input
+                      type="password"
+                      id="confirm-pass"
+                      placeholder="Új jelszó újra"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      required
+                    />
                   </div>
                 </div>
-                <button type="submit" className="primary-btn align-self-start">Jelszó frissítése</button>
+                <button type="submit" className="primary-btn align-self-start">
+                  Jelszó frissítése
+                </button>
               </form>
             </div>
 
@@ -108,7 +168,9 @@ export default function UserProfile({ user }) {
                     <div className="ticket-top">
                       <span className="ticket-id">{ticket.id}</span>
                       <span className="ticket-room">{ticket.room}</span>
-                      <span className={`ticket-status ${ticket.status === 'Megoldva' ? 'resolved' : 'pending'}`}>
+                      <span
+                        className={`ticket-status ${ticket.status === "Megoldva" ? "resolved" : "pending"}`}
+                      >
                         {ticket.status}
                       </span>
                     </div>
@@ -118,7 +180,6 @@ export default function UserProfile({ user }) {
                 ))}
               </div>
             </div>
-
           </div>
         </div>
       </div>
