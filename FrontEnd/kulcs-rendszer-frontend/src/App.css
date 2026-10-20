@@ -41,7 +41,8 @@
   display: block;
 }
 
-.header-user-section, .header-auth-buttons {
+.header-user-section,
+.header-auth-buttons {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -81,7 +82,9 @@
   color: var(--text);
 }
 
-.nav-btn, .auth-tab, .logout-btn {
+.nav-btn,
+.auth-tab,
+.logout-btn {
   padding: 8px 16px;
   border-radius: 6px;
   border: 1px solid var(--border);
@@ -92,7 +95,8 @@
   transition: all 0.2s;
 }
 
-.nav-btn.active, .auth-tab.active {
+.nav-btn.active,
+.auth-tab.active {
   background: var(--accent-bg);
   border-color: var(--accent-border);
   color: var(--accent);
@@ -149,7 +153,8 @@
   color: var(--text-h);
 }
 
-.form-group input, .form-group select {
+.form-group input,
+.form-group select {
   padding: 10px 12px;
   border-radius: 6px;
   border: 1px solid var(--border);
@@ -159,7 +164,8 @@
   outline: none;
 }
 
-.form-group input:focus, .form-group select:focus {
+.form-group input:focus,
+.form-group select:focus {
   border-color: var(--accent);
 }
 
@@ -183,7 +189,8 @@
   cursor: pointer;
 }
 
-.forgot-link, .text-link {
+.forgot-link,
+.text-link {
   color: var(--accent);
   text-decoration: none;
   background: none;
@@ -249,7 +256,6 @@
   font-weight: 700;
   padding: 4px 8px;
   border-radius: 4px;
-
 }
 
 .cards-grid {
@@ -490,7 +496,11 @@
 
 .profile-header-bg {
   height: 96px;
-  background: linear-gradient(135deg, rgba(170, 59, 255, 0.15) 0%, rgba(37, 99, 235, 0.15) 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(170, 59, 255, 0.15) 0%,
+    rgba(37, 99, 235, 0.15) 100%
+  );
   border-bottom: 1px solid var(--border);
 }
 
