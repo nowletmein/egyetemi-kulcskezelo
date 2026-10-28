@@ -25,10 +25,11 @@
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="9.0.20" />
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="9.0.20" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.20" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\KulcsRendszer.DataContext\KulcsRendszer.DataContext.csproj" />
+    <ProjectReference Include="..\KulcsRendszer.DataContext\KulcsRendszer.DataContext.csproj" />	
   </ItemGroup>
 
 </Project>

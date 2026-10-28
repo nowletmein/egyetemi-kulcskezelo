@@ -1,3 +1,4 @@
+using KulcsRendszer.Services.Exceptions;
 using KulcsRendszer.DataContext.Context;
 using KulcsRendszer.DataContext.Dtos;
 using Microsoft.EntityFrameworkCore;

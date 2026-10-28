@@ -1,8 +1,11 @@
+using System.Text;
 using KulcsRendszer.API.Middleware;
 using KulcsRendszer.DataContext.Context;
 using KulcsRendszer.Services.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.IdentityModel.Tokens;
 
 namespace KulcsRendszer.API {
     public class Program {
@@ -17,6 +20,27 @@ namespace KulcsRendszer.API {
                           .AllowAnyHeader()
                           .AllowAnyMethod();
                 });
+            });
+            builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            .AddJwtBearer(options => {
+                options.TokenValidationParameters = new TokenValidationParameters {
+                    ValidateIssuer = true,
+                    ValidateAudience = true,
+                    ValidateLifetime = true,
+                    ValidateIssuerSigningKey = true,
+                    ValidIssuer = "http://localhost:5000",
+                    ValidAudience = "http://localhost:3000",
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("MySuperSecretKeyThatIsAtLeast32CharactersLong!!ADDSFHsfgsdgksgkaowaefagnamfaklfaijg")),
+                    RoleClaimType = System.Security.Claims.ClaimTypes.Role,
+                    NameClaimType = System.Security.Claims.ClaimTypes.Name,
+                    ClockSkew = TimeSpan.Zero
+                };
+                options.Events = new JwtBearerEvents {
+                    OnAuthenticationFailed = context => {
+                        Console.WriteLine("Authentication failed: " + context.Exception.Message);
+                        return Task.CompletedTask;
+                    }
+                };
             });
 
             //swagger gen
