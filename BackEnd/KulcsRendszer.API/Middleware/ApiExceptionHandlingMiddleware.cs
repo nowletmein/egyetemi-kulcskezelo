@@ -1,85 +1,39 @@
-using Microsoft.AspNetCore.Mvc;
+using KulcsRendszer.DataContext.Entities;
+using KulcsRendszer.Services.Exceptions;
 
 namespace KulcsRendszer.API.Middleware {
-    public sealed class ApiExceptionHandlingMiddleware {
-        private readonly RequestDelegate _next;
-        private readonly ILogger<ApiExceptionHandlingMiddleware> _logger;
 
-        public ApiExceptionHandlingMiddleware(
-            RequestDelegate next,
-            ILogger<ApiExceptionHandlingMiddleware> logger) {
+    public class ApiExceptionHandlingMiddleware {
+        private readonly RequestDelegate _next;
+
+        public ApiExceptionHandlingMiddleware(RequestDelegate next) {
             _next = next;
-            _logger = logger;
         }
 
         public async Task InvokeAsync(HttpContext context) {
             try {
                 await _next(context);
             }
-            catch (InvalidFloorIdException exception) {
-                await WriteProblemDetailsAsync(
-                    context,
-                    StatusCodes.Status400BadRequest,
-                    "Invalid floor ID.",
-                    exception.Message);
-            }
-            catch (FloorNotFoundException exception) {
-                await WriteProblemDetailsAsync(
-                    context,
-                    StatusCodes.Status404NotFound,
-                    "Floor not found.",
-                    exception.Message);
-            }
-            catch (RoomsNotFoundException exception) {
-                await WriteProblemDetailsAsync(
-                    context,
-                    StatusCodes.Status404NotFound,
-                    "Rooms not found.",
-                    exception.Message);
-            }
-            catch (Exception exception) {
-                _logger.LogError(exception, "An unhandled exception occurred.");
-
-                await WriteProblemDetailsAsync(
-                    context,
-                    StatusCodes.Status500InternalServerError,
-                    "An unexpected error occurred.",
-                    "The server could not complete the request.");
+            catch (Exception ex) {
+                await HandleExceptionAsync(context, ex);
             }
         }
 
-        private static async Task WriteProblemDetailsAsync(
-            HttpContext context,
-            int statusCode,
-            string title,
-            string detail) {
-            if (context.Response.HasStarted) {
-                return;
-            }
+        private static Task HandleExceptionAsync(HttpContext context, Exception exception) {
+            context.Response.ContentType = "application/json";
 
-            context.Response.StatusCode = statusCode;
-            context.Response.ContentType = "application/problem+json";
-            await context.Response.WriteAsJsonAsync(new ProblemDetails {
-                Status = statusCode,
-                Title = title,
-                Detail = detail,
-                Instance = context.Request.Path
-            }, context.RequestAborted);
-        }
-    }
+            context.Response.StatusCode = exception switch {
+                INotFoundException => StatusCodes.Status404NotFound,
+                IAlreadyExistsException => StatusCodes.Status409Conflict,
+                _ => StatusCodes.Status500InternalServerError
+            };
 
-    public sealed class InvalidFloorIdException : Exception {
-        public InvalidFloorIdException(string message) : base(message) {
-        }
-    }
+            var result = new {
+                error = exception.GetType().Name,
+                message = exception.Message
+            };
 
-    public sealed class FloorNotFoundException : Exception {
-        public FloorNotFoundException(string message) : base(message) {
-        }
-    }
-
-    public sealed class RoomsNotFoundException : Exception {
-        public RoomsNotFoundException(string message) : base(message) {
+            return context.Response.WriteAsJsonAsync(result);
         }
     }
 }

@@ -1,5 +1,6 @@
 using KulcsRendszer.DataContext.Context;
 using KulcsRendszer.DataContext.Dtos;
+using KulcsRendszer.Services.Exceptions;
 using Microsoft.EntityFrameworkCore;
 
 namespace KulcsRendszer.Services.Services {

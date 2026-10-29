@@ -18,6 +18,7 @@ namespace KulcsRendszer.Controllers {
         [HttpGet("{id}")]
         public async Task<IActionResult> Get(int id) {
             var user = await _userService.Get(id);
+            //MOVE THIS CHECK TO Service
             if (user == null) {
                 return NotFound($"User with this ID {id} is not found!");
             }
@@ -27,6 +28,7 @@ namespace KulcsRendszer.Controllers {
         [HttpGet("info/{id}")]
         public async Task<IActionResult> GetInfo(int id) {
             var userInfo = await _userService.GetInfo(id);
+            //MOVE THIS CHECK TO Service
             if (userInfo == null) {
                 return NotFound($"User with this ID {id} is not found!");
             }
@@ -36,12 +38,14 @@ namespace KulcsRendszer.Controllers {
         [HttpPost("create")]
         public async Task<IActionResult> Create([FromBody] UserCreateDto userCreateDto) {
             var user = await _userService.Create(userCreateDto);
+            //check if user already exists
             return CreatedAtAction(nameof(Get), new { id = user.Id }, user);
         }
 
         [HttpPut("update/{id}")]
         public async Task<IActionResult> Update(int id, [FromBody] UserUpdateDto userUpdateDto) {
             var updatedUser = await _userService.Update(id, userUpdateDto);
+            //MOVE THIS CHECK TO Service
             if (updatedUser == null) {
                 return NotFound($"User with this ID {id} is not found!");
             }
@@ -52,6 +56,7 @@ namespace KulcsRendszer.Controllers {
         public async Task<IActionResult> ChangePassword(int id, [FromBody] ChangePasswordDto changePasswordDto) {
             try {
                 var success = await _userService.ChangePassword(id, changePasswordDto);
+                //MOVE THIS CHECK TO Service
                 if (!success) {
                     return NotFound($"User with this ID {id} is not found!");
                 }
@@ -68,6 +73,7 @@ namespace KulcsRendszer.Controllers {
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id) {
             var success = await _userService.Delete(id);
+            //MOVE THIS CHECK TO Service
             if (!success) {
                 return NotFound($"User with this ID {id} is not found!");
             }
