@@ -81,8 +81,8 @@ namespace KulcsRendszer.Services.Services {
         }
 
         public async Task<BuildingDto> Create(BuildingCreateDto buildingCreateDto) {
-            bool exists = await _context.Buildings.AnyAsync(b => 
-                b.BuildingCode == buildingCreateDto.BuildingCode || 
+            bool exists = await _context.Buildings.AnyAsync(b =>
+                b.BuildingCode == buildingCreateDto.BuildingCode ||
                 b.BuildingName == buildingCreateDto.BuildingName);
 
             if (exists) {
@@ -114,8 +114,8 @@ namespace KulcsRendszer.Services.Services {
                 building.BuildingName = buildingUpdateDto.BuildingName;
             }
 
-            bool nameOrCodeConflict = await _context.Buildings.AnyAsync(b => 
-                b.Id != buildingId && 
+            bool nameOrCodeConflict = await _context.Buildings.AnyAsync(b =>
+                b.Id != buildingId &&
                 (b.BuildingCode == building.BuildingCode || b.BuildingName == building.BuildingName));
 
             if (nameOrCodeConflict) {
