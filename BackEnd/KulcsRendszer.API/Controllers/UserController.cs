@@ -79,5 +79,25 @@ namespace KulcsRendszer.Controllers {
             }
             return NoContent();
         }
+        //Role
+        [HttpPost("role/{userId}")]
+        public async Task<IActionResult> AddRoleToUser(int userId, [FromBody] int roleId) {
+            return Ok(_userService.AddRoleToUser(userId, roleId));
+        }
+
+        [HttpPost("role/")]
+        public async Task<IActionResult> AddRole([FromBody] RoleCreateDto roleCreateDto) {
+            return Ok(_userService.CreateRole(roleCreateDto));
+        }
+
+        [HttpDelete("role/{Id}")]
+        public async Task<IActionResult> DeleteRole(int Id) {
+            return Ok(_userService.DeleteRole(Id));
+        }
+
+        [HttpDelete("role/remove/{Id}")]
+        public async Task<IActionResult> RemoveFromUser(int Id) {
+            return Ok(_userService.RemoveRoleFromUser(Id));
+        }
     }
 }

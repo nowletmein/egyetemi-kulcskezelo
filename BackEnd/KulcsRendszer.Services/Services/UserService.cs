@@ -222,6 +222,7 @@ namespace KulcsRendszer.Services.Services {
                 throw new RoleNotFoundException("Role not found with this Id");
             }
             _context.Roles.Remove(role);
+            await _context.SaveChangesAsync();
             return true;
         }
 
@@ -237,7 +238,7 @@ namespace KulcsRendszer.Services.Services {
             }
             user.Role = null;
             user.RoleId = userId;
-
+            await _context.SaveChangesAsync();
             return true;
         }
     }
