@@ -10,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace KulcsRendszer.Services.Services {
     public interface IBuildingService {
+        Task<List<BuildingDto>> GetAll();
         Task<BuildingDto> Get(int buildingId);
         Task<BuildingInfoDto> GetInfo(int buildingId);
         Task<BuildingDto> Create(BuildingCreateDto buildingCreateDto);
@@ -50,6 +51,15 @@ namespace KulcsRendszer.Services.Services {
                 BuildingCode = buildingCreateDto.BuildingCode,
                 BuildingName = buildingCreateDto.BuildingName
             };
+        }
+
+        public async Task<List<BuildingDto>> GetAll() {
+            var buildings = await _context.Buildings
+                .Include(b => b.Floors)
+                    .ThenInclude(f => f.Rooms)
+                .ToListAsync();
+
+            return buildings.Select(MapToBuildingDto).ToList();
         }
 
         public async Task<BuildingDto> Get(int buildingId) {

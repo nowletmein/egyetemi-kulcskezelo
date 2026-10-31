@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using KulcsRendszer.DataContext.Dtos;
 using KulcsRendszer.Services.Services;
@@ -13,6 +14,12 @@ namespace KulcsRendszer.Controllers {
 
         public BuildingController(IBuildingService buildingService) {
             _buildingService = buildingService;
+        }
+
+        [HttpGet("getall")]
+        public async Task<ActionResult<List<BuildingDto>>> GetAll() {
+            var buildings = await _buildingService.GetAll();
+            return Ok(buildings);
         }
 
         [HttpGet("get/{id}")]
