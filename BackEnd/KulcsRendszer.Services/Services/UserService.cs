@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Security.Claims;
+using System.Text;
 using System.Threading.Tasks;
 using BCrypt.Net;
 using KulcsRendszer.DataContext.Context;
@@ -9,6 +12,7 @@ using KulcsRendszer.DataContext.Dtos;
 using KulcsRendszer.DataContext.Entities;
 using KulcsRendszer.Services.Exceptions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 
 namespace KulcsRendszer.Services.Services {
 
@@ -16,7 +20,7 @@ namespace KulcsRendszer.Services.Services {
         //User
         Task<UserDto?> Get(int userId);
         Task<UserInfoDto?> GetInfo(int userId);
-        Task<UserDto> Create(UserCreateDto userCreateDto);
+        Task<string> Create(UserCreateDto userCreateDto);
         Task<UserDto?> Update(int userId, UserUpdateDto userUpdateDto);
         Task<bool> ChangePassword(int userId, ChangePasswordDto changePasswordDto);
         Task<bool> Delete(int userId);
@@ -105,7 +109,7 @@ namespace KulcsRendszer.Services.Services {
             };
         }
 
-        public async Task<UserDto> Create(UserCreateDto userCreateDto) {
+        public async Task<string> Create(UserCreateDto userCreateDto) {
             var user = MapToUser(userCreateDto);
             if (_context.Users.Any(x => x.Email == user.Email) || _context.Users.Any(x => x.Name == user.Name)) {
                 throw new UserAlreadyExistsException("User With this Email or Name already exists");
@@ -113,7 +117,7 @@ namespace KulcsRendszer.Services.Services {
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
 
-            return MapToUserDto(user);
+            return await GenerateToken(user);
         }
 
         public async Task<UserDto?> Update(int userId, UserUpdateDto userUpdateDto) {
@@ -167,15 +171,39 @@ namespace KulcsRendszer.Services.Services {
 
         //User
         public async Task<string> GenerateToken(User user) {
-            throw new NotImplementedException();
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("MySuperSecretKeyThatIsAtLeast32CharactersLong!!ADDSFHsfgsdgksgkaowaefagnamfaklfaijg"));
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+            var expires = DateTime.Now.AddDays(Convert.ToDouble(5));
+            var id = await GetClaimsIdentity(user);
+            var token = new JwtSecurityToken("http://localhost:5000", "http://localhost:3000", id.Claims, expires: expires, signingCredentials: creds);
+
+            return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
         public async Task<ClaimsIdentity> GetClaimsIdentity(User user) {
-            throw new NotImplementedException();
+            var claims = new List<Claim> {
+                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                new Claim(ClaimTypes.Name, user.Name),
+                new Claim(ClaimTypes.Email, user.Email),
+                new Claim(ClaimTypes.Sid, Guid.NewGuid().ToString()),
+                new Claim(JwtRegisteredClaimNames.AuthTime, DateTime.UtcNow.ToString(CultureInfo.InvariantCulture))
+            };
+
+            if (user.Role != null) {
+                claims.Add(new Claim("roleId", user.Role.Id.ToString()));
+                claims.Add(new Claim(ClaimTypes.Role, user.Role.Name.ToString()));
+            }
+
+            return await Task.FromResult(new ClaimsIdentity(claims, "Token"));
         }
 
         public async Task<string> Login(string email, string password) {
-            throw new NotImplementedException();
+            var user = await _context.Users.Include(x => x.Role).FirstOrDefaultAsync(x => x.Email == email);
+            if (user == null || !BCrypt.Net.BCrypt.Verify(password, user.PasswordHash)) {
+                throw new UserNotFoundException("Bad email or password");
+            }
+            //return MapToUserDto(user);
+            return await GenerateToken(user);
         }
 
         //Role
