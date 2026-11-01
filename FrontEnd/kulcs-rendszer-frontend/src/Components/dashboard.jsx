@@ -1,59 +1,140 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
-const buildings = [
-  {
-    id: "I",
-    name: "Building I",
-    desc: "Műszaki Informatikai Kar",
-    floorRoomCounts: [4, 6, 6, 6, 6, 6, 6, 6, 6, 6, 0],
-    availableKeys: 18,
-  },
-  {
-    id: "A",
-    name: "Building A",
-    desc: "Gazdaságtudományi Kar",
-    basementRooms: 2,
-    floorRoomCounts: [2, 8, 8],
-    availableKeys: 22,
-  },
-  {
-    id: "B",
-    name: "Building B",
-    desc: "Mérnöki Kar",
-    floorRoomCounts: [0, 8, 8],
-    availableKeys: 9,
-  },
-];
+const API_BASE_URL = "http://localhost:5000/api";
 
 export default function Dashboard() {
-  const [selectedBuilding, setSelectedBuilding] = useState("I");
-  const [selectedFloor, setSelectedFloor] = useState("0");
+  const [buildings, setBuildings] = useState([]);
+  const [floors, setFloors] = useState([]);
+  const [rooms, setRooms] = useState([]);
 
-  const building = buildings.find((item) => item.id === selectedBuilding);
-  const floors = [
-    ...(building.basementRooms
-      ? [
-          {
-            id: "basement",
-            label: "Alagsor",
-            roomCount: building.basementRooms,
-          },
-        ]
-      : []),
-    ...building.floorRoomCounts.map((roomCount, floorNumber) => ({
-      id: String(floorNumber),
-      label: floorNumber === 0 ? "Földszint" : `${floorNumber}. emelet`,
-      roomCount,
-    })),
-  ];
-  const currentFloor = floors.find((floor) => floor.id === selectedFloor);
-  const rooms = Array.from({ length: currentFloor.roomCount }, (_, index) => {
-    const roomNumber = String(index + 1).padStart(2, "0");
-    const floorPrefix = selectedFloor === "basement" ? "A" : selectedFloor;
-    const name = `${building.id}.${floorPrefix}${roomNumber}`;
+  const [selectedBuildingId, setSelectedBuildingId] = useState(null);
+  const [selectedFloorId, setSelectedFloorId] = useState(null);
 
-    return { id: name, name, keyAvailable: true };
-  });
+  const [loading, setLoading] = useState(true);
+  const [roomsLoading, setRoomsLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [buildingsRes, floorsRes] = await Promise.all([
+          fetch(`${API_BASE_URL}/Building/getall`),
+          fetch(`${API_BASE_URL}/Floor/getall`),
+        ]);
+
+        if (!buildingsRes.ok || !floorsRes.ok) {
+          throw new Error("Hiba történt az adatok lekérdezésekor.");
+        }
+
+        const buildingsData = await buildingsRes.json();
+        const floorsData = await floorsRes.json();
+
+        setBuildings(buildingsData);
+        setFloors(floorsData);
+
+        if (buildingsData.length > 0) {
+          const firstBuildingId = buildingsData[0].id;
+          setSelectedBuildingId(firstBuildingId);
+
+          const buildingFloors = floorsData.filter(
+            (f) => f.buildingId === firstBuildingId,
+          );
+          if (buildingFloors.length > 0) {
+            setSelectedFloorId(buildingFloors[0].id);
+          }
+        }
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  useEffect(() => {
+    if (!selectedFloorId) return;
+
+    let isMounted = true;
+
+    const fetchRooms = async () => {
+      try {
+        setRoomsLoading(true);
+        const res = await fetch(
+          `${API_BASE_URL}/Floor/${selectedFloorId}/rooms`,
+        );
+        if (!res.ok) {
+          throw new Error("Nem sikerült betölteni a termeket.");
+        }
+        const roomsData = await res.json();
+        if (isMounted) setRooms(roomsData);
+      } catch (err) {
+        console.error(err);
+        if (isMounted) setRooms([]);
+      } finally {
+        if (isMounted) setRoomsLoading(false);
+      }
+    };
+
+    fetchRooms();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedFloorId]);
+
+  const handleBuildingChange = (buildingId) => {
+    setSelectedBuildingId(buildingId);
+    const availableFloors = floors.filter((f) => f.buildingId === buildingId);
+    if (availableFloors.length > 0) {
+      setSelectedFloorId(availableFloors[0].id);
+    } else {
+      setSelectedFloorId(null);
+      setRooms([]);
+    }
+  };
+
+  const getBuildingDisplayName = (b) => {
+    if (!b) return "-";
+
+    const code = b.code || b.buildingCode || b.shortName;
+    const name = b.name || b.buildingName || b.title;
+
+    if (code && name) {
+      if (name.startsWith(code)) {
+        return name;
+      }
+      return `${code} - ${name}`;
+    }
+
+    return name || code || `Épület #${b.id}`;
+  };
+
+  if (loading) {
+    return (
+      <div className="dashboard-container">
+        <p>Adatok betöltése...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="dashboard-container">
+        <p>Hiba történt: {error}</p>
+      </div>
+    );
+  }
+
+  const selectedBuilding = buildings.find((b) => b.id === selectedBuildingId);
+  const availableFloors = floors.filter(
+    (f) => f.buildingId === selectedBuildingId,
+  );
+  const selectedFloor = floors.find((f) => f.id === selectedFloorId);
+
+  const currentRooms = selectedFloorId ? rooms : [];
 
   return (
     <div className="dashboard-container">
@@ -65,24 +146,13 @@ export default function Dashboard() {
           {buildings.map((b) => (
             <div
               key={b.id}
-              className={`clickable-card building-card ${selectedBuilding === b.id ? "selected" : ""}`}
-              onClick={() => {
-                setSelectedBuilding(b.id);
-                setSelectedFloor("0");
-              }}
+              className={`clickable-card building-card ${
+                selectedBuildingId === b.id ? "selected" : ""
+              }`}
+              onClick={() => handleBuildingChange(b.id)}
             >
-              <h4>{b.name}</h4>
-              <p className="card-desc">{b.desc}</p>
-              <div className="card-footer-info">
-                <span>
-                  Összesen:{" "}
-                  {b.floorRoomCounts.reduce(
-                    (total, count) => total + count,
-                    b.basementRooms ?? 0,
-                  )}{" "}
-                  terem
-                </span>
-              </div>
+              <h4>{getBuildingDisplayName(b)}</h4>
+              <p className="card-desc">{b.description || b.desc || ""}</p>
             </div>
           ))}
         </div>
@@ -93,54 +163,68 @@ export default function Dashboard() {
           <h3>Emelet kiválasztása</h3>
         </div>
         <div className="floor-buttons-group">
-          {floors.map((floor) => (
-            <button
-              key={floor.id}
-              className={`floor-btn ${selectedFloor === floor.id ? "active" : ""}`}
-              onClick={() => setSelectedFloor(floor.id)}
-            >
-              {floor.label}
-            </button>
-          ))}
+          {availableFloors.length === 0 ? (
+            <p>Ehhez az épülethez nem található emelet.</p>
+          ) : (
+            availableFloors.map((floor) => (
+              <button
+                key={floor.id}
+                className={`floor-btn ${
+                  selectedFloorId === floor.id ? "active" : ""
+                }`}
+                onClick={() => setSelectedFloorId(floor.id)}
+              >
+                {floor.name ||
+                  floor.label ||
+                  `${floor.level ?? floor.id}. emelet`}
+              </button>
+            ))
+          )}
         </div>
       </section>
 
       <section className="step-section">
         <div className="step-header">
           <h3>
-            Terem és kulcs foglalása ({building.id} Épület, {currentFloor.label}
-            )
+            Terem és kulcs foglalása ({getBuildingDisplayName(selectedBuilding)}
+            , {selectedFloor?.name || selectedFloor?.label})
           </h3>
         </div>
-        {rooms.length === 0 ? (
-          <p>
-            {building.id === "I" && selectedFloor === "10"
-              ? "A 10. emeleten nincs foglalható terem."
-              : "Ezen az emeleten nincs foglalható terem."}
-          </p>
+
+        {roomsLoading ? (
+          <p>Termek betöltése...</p>
+        ) : currentRooms.length === 0 ? (
+          <p>Ezen az emeleten nincs foglalható terem.</p>
         ) : (
           <div className="cards-grid rooms-grid">
-            {rooms.map((room) => (
-              <div key={room.id} className="room-card">
-                <div className="room-header">
-                  <h4 className="room-title">{room.name}</h4>
-                  <span
-                    className={`key-badge ${room.keyAvailable ? "available" : "borrowed"}`}
-                  >
-                    {room.keyAvailable ? "Kulcs Felvehető" : "Kiadva"}
-                  </span>
-                </div>
+            {currentRooms.map((room) => {
+              const isAvailable = room.keyAvailable ?? room.isAvailable ?? true;
+              return (
+                <div key={room.id} className="room-card">
+                  <div className="room-header">
+                    <h4 className="room-title">
+                      {room.name || room.roomNumber}
+                    </h4>
+                    <span
+                      className={`key-badge ${
+                        isAvailable ? "available" : "borrowed"
+                      }`}
+                    >
+                      {isAvailable ? "Kulcs Felvehető" : "Kiadva"}
+                    </span>
+                  </div>
 
-                <div className="room-action">
-                  <button
-                    className={`book-key-btn ${!room.keyAvailable ? "disabled" : ""}`}
-                    disabled={!room.keyAvailable}
-                  >
-                    {room.keyAvailable ? "Book Key" : "Nincs Kulcs"}
-                  </button>
+                  <div className="room-action">
+                    <button
+                      className={`book-key-btn ${!isAvailable ? "disabled" : ""}`}
+                      disabled={!isAvailable}
+                    >
+                      {isAvailable ? "Book Key" : "Nincs Kulcs"}
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </section>

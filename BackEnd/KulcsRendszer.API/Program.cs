@@ -74,6 +74,11 @@ namespace KulcsRendszer.API {
                 app.UseSwaggerUI();
             }
 
+            app.UseCors("ReactPolicy");
+
+            app.UseAuthentication();
+            app.UseAuthorization();
+
             app.MapControllers();
             app.MapHealthChecks("/api/health");
             app.MapGet("/", () => "A váz sikeresen elindult!");
