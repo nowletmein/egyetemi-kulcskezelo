@@ -5,6 +5,7 @@ import Login from "./Components/login.jsx";
 import Register from "./Components/register.jsx";
 import Dashboard from "./Components/dashboard.jsx";
 import UserProfile from "./Components/userprofile.jsx";
+import AdminPage from "./Components/adminpage.jsx";
 import "./App.css";
 
 function App() {
@@ -46,6 +47,8 @@ function App() {
         )}
 
         {currentPage === "dashboard" && <Dashboard />}
+
+        {currentPage === "admin" && <AdminPage />}
 
         {currentPage === "profile" && <UserProfile user={user} />}
 
