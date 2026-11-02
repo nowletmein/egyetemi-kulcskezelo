@@ -28,13 +28,14 @@ namespace KulcsRendszer.Services.Services {
             return await _dbContext.ClassRooms
                 .Where(room => room.FloorId == floorId)
                 .OrderBy(room => room.Name)
-                .Select(room => new RoomResponse(
-                    room.Id,
-                    room.Floor.Building.BuildingName,
-                    room.FloorId,
-                    room.Name,
-                    room.Capacity,
-                    room.Equipment))
+                .Select(room => new RoomResponse {
+                    Id = room.Id,
+                    Building = room.Floor.Building.BuildingName,
+                    FloorId = room.FloorId,
+                    Name = room.Name,
+                    Capacity = room.Capacity,
+                    Equipment = room.Equipment
+                })
                 .ToListAsync(cancellationToken);
         }
     }

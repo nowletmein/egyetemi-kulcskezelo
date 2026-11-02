@@ -11,16 +11,15 @@ using Microsoft.EntityFrameworkCore;
 
 namespace KulcsRendszer.Services.Services {
     public interface IBookingService {
-        Task<IReadOnlyList<Booking>> GetUserBookingsAsync(
+        Task<IReadOnlyList<BookingDto>> GetUserBookingsAsync(
             int userId,
             CancellationToken cancellationToken);
 
-        Task<Booking> AddUserBookingAsync(
+        Task<BookingDto> AddUserBookingAsync(
             BookingCreateDto bookingCreateDto,
             CancellationToken cancellationToken);
 
         Task<bool> DeleteUserBookingAsync(
-            int userId,
             int bookingId,
             CancellationToken cancellationToken);
     }
@@ -32,7 +31,7 @@ namespace KulcsRendszer.Services.Services {
             _context = context;
         }
 
-        public async Task<IReadOnlyList<Booking>> GetUserBookingsAsync(
+        public async Task<IReadOnlyList<BookingDto>> GetUserBookingsAsync(
             int userId,
             CancellationToken cancellationToken) {
             var userExists = await _context.Users.Include(user => user.Bookings).FirstOrDefaultAsync(user => user.Id == userId, cancellationToken);
@@ -42,11 +41,15 @@ namespace KulcsRendszer.Services.Services {
                     "User not found with this Id");
             }
 
-            return userExists.Bookings.ToList();
+            if (!userExists.Bookings.Any()) {
+                throw new BookingNotFoundException(
+                    "No bookings found for this user.");
+            }
 
+            return userExists.Bookings.Select(ToDto).ToList();
         }
 
-        public async Task<Booking> AddUserBookingAsync(
+        public async Task<BookingDto> AddUserBookingAsync(
             BookingCreateDto bookingCreateDto,
             CancellationToken cancellationToken) {
             if (bookingCreateDto.StartTime >= bookingCreateDto.EndTime) {
@@ -98,19 +101,15 @@ namespace KulcsRendszer.Services.Services {
             _context.Bookings.Add(booking);
             await _context.SaveChangesAsync(cancellationToken);
 
-            return booking;
-
+            return ToDto(booking);
         }
 
         public async Task<bool> DeleteUserBookingAsync(
-            int userId,
             int bookingId,
             CancellationToken cancellationToken) {
             var booking = await _context.Bookings
                 .FirstOrDefaultAsync(
-                    item =>
-                        item.Id == bookingId &&
-                        item.UserId == userId,
+                    item => item.Id == bookingId,
                     cancellationToken);
 
             if (booking == null) {
@@ -123,5 +122,15 @@ namespace KulcsRendszer.Services.Services {
 
             return true;
         }
+
+        private static BookingDto ToDto(Booking booking) => new BookingDto {
+            Id = booking.Id,
+            UserId = booking.UserId,
+            RoomId = booking.RoomId,
+            StartTime = booking.StartTime,
+            EndTime = booking.EndTime,
+            Status = booking.Status,
+            SpecialRequest = booking.SpecialRequest
+        };
     }
 }
