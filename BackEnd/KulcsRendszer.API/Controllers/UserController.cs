@@ -72,8 +72,8 @@ namespace KulcsRendszer.Controllers {
 
         [HttpPost("login")]
         [AllowAnonymous]
-        public async Task<IActionResult> Login([FromBody] string email, [FromBody] string password) {
-            return Ok(await _userService.Login(email, password));
+        public async Task<IActionResult> Login([FromBody] UserCreateDto user) {
+            return Ok(await _userService.Login(user.Email, user.Password));
         }
 
 
