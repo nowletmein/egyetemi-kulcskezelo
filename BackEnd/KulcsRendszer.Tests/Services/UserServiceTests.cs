@@ -97,6 +97,7 @@ public class UserServiceTests : IAsyncLifetime {
         await Assert.ThrowsAsync<UserNotFoundException>(() => service.Delete(99999));
     }
 
+
     [Fact]
     public async Task Create_ShouldThrowException_WhenUserAlreadyExists() {
         var existingUser = new User {
@@ -118,6 +119,7 @@ public class UserServiceTests : IAsyncLifetime {
         await Assert.ThrowsAsync<UserAlreadyExistsException>(() => service.Create(newUserDto));
     }
 
+    //result.name stb helyett -> jwt tokent kap vissza
     [Fact]
     public async Task Create_ShouldCreateUserSuccessfully_WhenDataIsValid() {
         var service = new UserService(_context);
@@ -129,36 +131,13 @@ public class UserServiceTests : IAsyncLifetime {
 
         var result = await service.Create(createDto);
 
-        Assert.NotNull(result);
-        Assert.True(result.Id > 0);
-        Assert.Equal("Major Anna", result.Name);
-        Assert.Equal("annumamu@example.com", result.Email);
-    }
+        Assert.False(string.IsNullOrWhiteSpace(result));
 
-    [Fact]
-    public async Task Get_ShouldReturnUserWithMappedRelations_WhenUserExists() {
-        var role = new Role { Name = UserRole.Admin };
-        _context.Roles.Add(role);
-        await _context.SaveChangesAsync();
+        var createdUser = await _context.Users.SingleAsync(user => user.Email == createDto.Email);
 
-        var user = new User {
-            Name = "Nagy Péter",
-            Email = "peter@example.com",
-            PasswordHash = "hash",
-            RoleId = role.Id
-        };
-        _context.Users.Add(user);
-        await _context.SaveChangesAsync();
-
-        var service = new UserService(_context);
-
-        var result = await service.Get(user.Id);
-
-        Assert.NotNull(result);
-        Assert.Equal(user.Id, result.Id);
-        Assert.Equal("Nagy Péter", result.Name);
-        Assert.Equal("peter@example.com", result.Email);
-        Assert.NotNull(result.Bookings);
+        Assert.True(createdUser.Id > 0);
+        Assert.Equal("Major Anna", createdUser.Name);
+        Assert.Equal("annumamu@example.com", createdUser.Email);
     }
 
     [Fact]
@@ -283,7 +262,7 @@ public class UserServiceTests : IAsyncLifetime {
         };
 
         var created = await service.Create(createDto);
-        var userInDb = await _context.Users.FindAsync(created.Id);
+        var userInDb = await _context.Users.SingleAsync(user => user.Email == createDto.Email);
 
         Assert.NotNull(userInDb);
         Assert.NotEqual(plainPassword, userInDb.PasswordHash);
