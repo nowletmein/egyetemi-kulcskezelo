@@ -2,6 +2,11 @@ import React, { useState, useEffect } from "react";
 
 const API_BASE_URL = "http://localhost:5000/api";
 
+function getFloorDisplayName(floor) {
+  if (!Number.isInteger(floor?.number)) return "Ismeretlen emelet";
+  return floor.number === 0 ? "Földszint" : `${floor.number}. emelet`;
+}
+
 export default function Dashboard() {
   const [buildings, setBuildings] = useState([]);
   const [floors, setFloors] = useState([]);
@@ -174,9 +179,7 @@ export default function Dashboard() {
                 }`}
                 onClick={() => setSelectedFloorId(floor.id)}
               >
-                {floor.name ||
-                  floor.label ||
-                  `${floor.level ?? floor.id}. emelet`}
+                {getFloorDisplayName(floor)}
               </button>
             ))
           )}
@@ -187,7 +190,11 @@ export default function Dashboard() {
         <div className="step-header">
           <h3>
             Terem és kulcs foglalása ({getBuildingDisplayName(selectedBuilding)}
-            , {selectedFloor?.name || selectedFloor?.label})
+            ,{" "}
+            {selectedFloor
+              ? getFloorDisplayName(selectedFloor)
+              : "nincs emelet"}
+            )
           </h3>
         </div>
 

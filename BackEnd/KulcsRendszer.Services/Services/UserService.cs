@@ -15,6 +15,7 @@ namespace KulcsRendszer.Services.Services {
     public interface IUserService {
         //User
         Task<UserDto?> Get(int userId);
+        Task<List<UserDto>> GetAll();
         Task<UserInfoDto?> GetInfo(int userId);
         Task<UserDto> Create(UserCreateDto userCreateDto);
         Task<UserDto?> Update(int userId, UserUpdateDto userUpdateDto);
@@ -26,6 +27,7 @@ namespace KulcsRendszer.Services.Services {
         Task<int> CreateRole(RoleCreateDto roleCreateDto);
         Task<bool> AddRoleToUser(int userId, int roleId);
         Task<RoleDto?> GetRole(int roleId);
+        Task<List<RoleDto>> GetAllRoles();
         Task<bool> DeleteRole(int roleId);
         Task<bool> RemoveRoleFromUser(int userId);
     }
@@ -89,6 +91,18 @@ namespace KulcsRendszer.Services.Services {
             return MapToUserDto(user);
         }
 
+        public async Task<List<UserDto>> GetAll() {
+            var users = await _context.Users
+                .Include(u => u.Role)
+                .Include(u => u.Bookings)
+                .Include(u => u.KeyMovements)
+                .Include(u => u.ReportedTickets)
+                .Include(u => u.OrderedMaintenances)
+                .ToListAsync();
+
+            return users.Select(MapToUserDto).ToList();
+        }
+
         public async Task<UserInfoDto?> GetInfo(int userId) {
             var user = await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Id == userId);
 
@@ -99,7 +113,7 @@ namespace KulcsRendszer.Services.Services {
             return new UserInfoDto {
                 Id = user.Id,
                 RoleId = user.RoleId,
-                Role = user.Role,
+                Role = user.Role == null ? null : MapToRoleDto(user.Role),
                 Name = user.Name,
                 Email = user.Email
             };
@@ -198,9 +212,6 @@ namespace KulcsRendszer.Services.Services {
             if (role == null) {
                 throw new RoleNotFoundException("Role not found with this Id: " + roleId);
             }
-            if (user.Role != null) {
-                throw new RoleAlreadyExistsException("User already has role: " + user.Role.Name);
-            }
 
             user.Role = role;
             user.RoleId = roleId;
@@ -214,6 +225,11 @@ namespace KulcsRendszer.Services.Services {
                 throw new RoleNotFoundException("Role not found with this Id");
             }
             return MapToRoleDto(role);
+        }
+
+        public async Task<List<RoleDto>> GetAllRoles() {
+            var roles = await _context.Roles.ToListAsync();
+            return roles.Select(MapToRoleDto).ToList();
         }
 
         public async Task<bool> DeleteRole(int roleId) {
@@ -237,7 +253,7 @@ namespace KulcsRendszer.Services.Services {
                 throw new RoleAlreadyExistsException("User doesent has role: ");
             }
             user.Role = null;
-            user.RoleId = userId;
+            user.RoleId = null;
             await _context.SaveChangesAsync();
             return true;
         }
