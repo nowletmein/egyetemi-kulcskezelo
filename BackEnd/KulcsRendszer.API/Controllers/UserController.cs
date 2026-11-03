@@ -17,17 +17,7 @@ namespace KulcsRendszer.Controllers {
         public UserController(IUserService userService) {
             _userService = userService;
         }
-        //ROLES:
-        //for testing purposes while we dont have a seeder if you want to test and endpoint just replace [Authorize(Roles = "Oktato,Portas,Admin,Igazgato")] to [AllowAnonymous]
-        //if you dont have a user token created with admin rights
-        /*
-        Oktato,
-        Portas,
-        Admin,
-        Igazgato*/
-
         [HttpGet("{id}")]
-        [Authorize(Roles = "Oktato,Portas,Admin,Igazgato")]
         public async Task<IActionResult> Get() {
 
             var claim = User.FindFirst(ClaimTypes.NameIdentifier);
@@ -46,6 +36,7 @@ namespace KulcsRendszer.Controllers {
         }
 
         [HttpGet]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetAll() {
             var users = await _userService.GetAll();
             return Ok(users);
@@ -78,7 +69,6 @@ namespace KulcsRendszer.Controllers {
 
 
         [HttpPut("update")]
-        [Authorize(Roles = "Oktato,Portas,Admin,Igazgato")]
         public async Task<IActionResult> Update([FromBody] UserUpdateDto userUpdateDto) {
 
             var claim = User.FindFirst(ClaimTypes.NameIdentifier);
@@ -95,7 +85,6 @@ namespace KulcsRendszer.Controllers {
         }
 
         [HttpPost("change-password")]
-        [Authorize(Roles = "Oktato,Portas,Admin,Igazgato")]
         public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto changePasswordDto) {
             try {
                 var claim = User.FindFirst(ClaimTypes.NameIdentifier);
@@ -159,6 +148,7 @@ namespace KulcsRendszer.Controllers {
         }
 
         [HttpGet("roles")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetAllRoles() {
             var roles = await _userService.GetAllRoles();
             return Ok(roles);

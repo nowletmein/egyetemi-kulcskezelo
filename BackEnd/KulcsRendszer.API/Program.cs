@@ -100,6 +100,8 @@ namespace KulcsRendszer.API {
 
             app.UseCors("ReactPolicy");
 
+            app.UseMiddleware<ApiExceptionHandlingMiddleware>();
+
             app.UseAuthentication();
             app.UseAuthorization();
 

@@ -1,47 +1,84 @@
 import React, { useState } from "react";
+import { jsonOptions, request } from "../api.js";
 
-export default function UserProfile({ user }) {
+export default function UserProfile({ user, onUserUpdated }) {
   const [isEditingData, setIsEditingData] = useState(false);
-  const [name, setName] = useState("Kovács Balázs");
-  const [email, setEmail] = useState(user?.email || "user@uni-pannon.hu");
+  const [editedName, setEditedName] = useState("");
+  const [editedEmail, setEditedEmail] = useState("");
 
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const canEditProfile =
+    user &&
+    (!user.roles?.length ||
+      user.roles.some((role) =>
+        ["Oktato", "Portas", "Admin", "Igazgato"].includes(role),
+      ));
 
-  const tickets = [
-    {
-      id: "#TK-1024",
-      room: "I.101",
-      issue: "Sérült HDMI kábel a projektorhoz",
-      status: "Folyamatban",
-      date: "2026.10.12",
-    },
-    {
-      id: "#TK-0891",
-      room: "A.204",
-      issue: "Hiányzó projektor távirányító",
-      status: "Megoldva",
-      date: "2026.09.28",
-    },
-  ];
+  const name = user?.name || "";
+  const email = user?.email || "";
 
-  const handleSaveData = (e) => {
+  const handleSaveData = async (e) => {
     e.preventDefault();
-    setIsEditingData(false);
-    alert("Személyes adatok sikeresen frissítve!");
+    setSaving(true);
+    setError("");
+    setNotice("");
+    try {
+      const updatedUser = await request(
+        "/User/update",
+        jsonOptions("PUT", {
+          name: editedName.trim(),
+          email: editedEmail.trim(),
+          password: "",
+        }),
+      );
+      const updatedDetails = {
+        name: updatedUser?.name || editedName.trim(),
+        email: updatedUser?.email || editedEmail.trim(),
+      };
+      onUserUpdated?.(updatedDetails);
+      setIsEditingData(false);
+      setNotice("Személyes adatok sikeresen frissítve.");
+    } catch (saveError) {
+      setError(`Az adatok mentése nem sikerült: ${saveError.message}`);
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handlePasswordChange = (e) => {
+  const handlePasswordChange = async (e) => {
     e.preventDefault();
+    setError("");
+    setNotice("");
     if (newPassword !== confirmPassword) {
-      alert("A megadott új jelszavak nem egyeznek!");
+      setError("A megadott új jelszavak nem egyeznek.");
       return;
     }
-    alert("Jelszó sikeresen megváltoztatva!");
-    setCurrentPassword("");
-    setNewPassword("");
-    setConfirmPassword("");
+    setSaving(true);
+    setError("");
+    setNotice("");
+    try {
+      await request(
+        "/User/change-password",
+        jsonOptions("POST", {
+          oldPassword: currentPassword,
+          newPassword,
+          confirmPassword,
+        }),
+      );
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setNotice("A jelszó sikeresen megváltozott.");
+    } catch (passwordError) {
+      setError(`A jelszó módosítása nem sikerült: ${passwordError.message}`);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -49,19 +86,43 @@ export default function UserProfile({ user }) {
       <div className="profile-card">
         <div className="profile-header-bg"></div>
         <div className="profile-body">
-          <div className="profile-avatar-large">KB</div>
+          <div className="profile-avatar-large">
+            {name
+              .split(/\s+/)
+              .filter(Boolean)
+              .slice(0, 2)
+              .map((part) => part[0]?.toLocaleUpperCase("hu"))
+              .join("") || "?"}
+          </div>
           <h2 className="profile-name">{name}</h2>
           <p className="profile-email">{email}</p>
 
           <div className="profile-sections">
+            {error && (
+              <p className="auth-error" role="alert">
+                {error}
+              </p>
+            )}
+            {notice && (
+              <p className="booking-success" role="status">
+                {notice}
+              </p>
+            )}
             <div className="profile-section-block">
               <div className="section-title-header">
                 <h3>Személyes adatok</h3>
-                {!isEditingData && (
+                {canEditProfile && !isEditingData && (
                   <button
                     type="button"
                     className="secondary-btn"
-                    onClick={() => setIsEditingData(true)}
+                    onClick={() => {
+                      setError("");
+                      setNotice("");
+                      setEditedName(name);
+                      setEditedEmail(email);
+                      setIsEditingData(true);
+                    }}
+                    disabled={saving}
                   >
                     Adatok módosítása
                   </button>
@@ -75,8 +136,8 @@ export default function UserProfile({ user }) {
                     <input
                       type="text"
                       id="edit-name"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
+                      value={editedName}
+                      onChange={(e) => setEditedName(e.target.value)}
                       required
                     />
                   </div>
@@ -85,19 +146,26 @@ export default function UserProfile({ user }) {
                     <input
                       type="email"
                       id="edit-email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      value={editedEmail}
+                      onChange={(e) => setEditedEmail(e.target.value)}
                       required
                     />
                   </div>
                   <div className="form-actions-inline">
-                    <button type="submit" className="primary-btn">
-                      Mentés
+                    <button
+                      type="submit"
+                      className="primary-btn"
+                      disabled={saving}
+                    >
+                      {saving ? "Mentés..." : "Mentés"}
                     </button>
                     <button
                       type="button"
                       className="cancel-btn"
-                      onClick={() => setIsEditingData(false)}
+                      onClick={() => {
+                        setIsEditingData(false);
+                      }}
+                      disabled={saving}
                     >
                       Mégse
                     </button>
@@ -117,68 +185,65 @@ export default function UserProfile({ user }) {
               )}
             </div>
 
-            <div className="profile-section-block">
-              <h3>Jelszó módosítása</h3>
-              <form onSubmit={handlePasswordChange} className="password-form">
-                <div className="form-group">
-                  <label htmlFor="current-pass">Jelenlegi jelszó</label>
-                  <input
-                    type="password"
-                    id="current-pass"
-                    value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="form-row">
+            {canEditProfile ? (
+              <div className="profile-section-block">
+                <h3>Jelszó módosítása</h3>
+                <form onSubmit={handlePasswordChange} className="password-form">
                   <div className="form-group">
-                    <label htmlFor="new-pass">Új jelszó</label>
+                    <label htmlFor="current-pass">Jelenlegi jelszó</label>
                     <input
                       type="password"
-                      id="new-pass"
-                      placeholder="Új jelszó"
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
+                      id="current-pass"
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
                       required
                     />
                   </div>
-                  <div className="form-group">
-                    <label htmlFor="confirm-pass">Új jelszó megerősítése</label>
-                    <input
-                      type="password"
-                      id="confirm-pass"
-                      placeholder="Új jelszó újra"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      required
-                    />
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label htmlFor="new-pass">Új jelszó</label>
+                      <input
+                        type="password"
+                        id="new-pass"
+                        placeholder="Új jelszó"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label htmlFor="confirm-pass">
+                        Új jelszó megerősítése
+                      </label>
+                      <input
+                        type="password"
+                        id="confirm-pass"
+                        placeholder="Új jelszó újra"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        required
+                      />
+                    </div>
                   </div>
-                </div>
-                <button type="submit" className="primary-btn align-self-start">
-                  Jelszó frissítése
-                </button>
-              </form>
-            </div>
+                  <button
+                    type="submit"
+                    className="primary-btn align-self-start"
+                    disabled={saving}
+                  >
+                    {saving ? "Frissítés..." : "Jelszó frissítése"}
+                  </button>
+                </form>
+              </div>
+            ) : (
+              <p className="booking-role-note">
+                Profiladatot és jelszót csak kiosztott szerepkörrel lehet
+                módosítani.
+              </p>
+            )}
 
             <div className="profile-section-block">
               <h3>Bejelentett hibajegyek</h3>
-              <div className="tickets-list">
-                {tickets.map((ticket) => (
-                  <div key={ticket.id} className="ticket-item">
-                    <div className="ticket-top">
-                      <span className="ticket-id">{ticket.id}</span>
-                      <span className="ticket-room">{ticket.room}</span>
-                      <span
-                        className={`ticket-status ${ticket.status === "Megoldva" ? "resolved" : "pending"}`}
-                      >
-                        {ticket.status}
-                      </span>
-                    </div>
-                    <p className="ticket-issue">{ticket.issue}</p>
-                    <span className="ticket-date">{ticket.date}</span>
-                  </div>
-                ))}
-              </div>
+              <p>A hibajegyek megjelenítése még nem érhető el.</p>
             </div>
           </div>
         </div>

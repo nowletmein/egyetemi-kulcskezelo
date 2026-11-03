@@ -22,6 +22,10 @@ namespace KulcsRendszer.Services.Services {
         Task<bool> DeleteUserBookingAsync(
             int bookingId,
             CancellationToken cancellationToken);
+
+        Task<int?> GetBookingOwnerIdAsync(
+            int bookingId,
+            CancellationToken cancellationToken);
     }
 
     public class BookingService : IBookingService {
@@ -121,6 +125,15 @@ namespace KulcsRendszer.Services.Services {
             await _context.SaveChangesAsync(cancellationToken);
 
             return true;
+        }
+
+        public async Task<int?> GetBookingOwnerIdAsync(
+            int bookingId,
+            CancellationToken cancellationToken) {
+            return await _context.Bookings
+                .Where(booking => booking.Id == bookingId)
+                .Select(booking => (int?)booking.UserId)
+                .FirstOrDefaultAsync(cancellationToken);
         }
 
         private static BookingDto ToDto(Booking booking) => new BookingDto {

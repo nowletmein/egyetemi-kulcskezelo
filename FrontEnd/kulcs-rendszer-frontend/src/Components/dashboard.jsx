@@ -1,16 +1,14 @@
 import React, { useState, useEffect } from "react";
-
-const API_BASE_URL = "http://localhost:5000/api";
+import { jsonOptions, request } from "../api.js";
 
 function getFloorDisplayName(floor) {
   if (!Number.isInteger(floor?.number)) return "Ismeretlen emelet";
   return floor.number === 0 ? "Földszint" : `${floor.number}. emelet`;
 }
 
-export default function Dashboard() {
+export default function Dashboard({ user, onBookingCreated }) {
   const [buildings, setBuildings] = useState([]);
   const [floors, setFloors] = useState([]);
-  const [rooms, setRooms] = useState([]);
 
   const [selectedBuildingId, setSelectedBuildingId] = useState(null);
   const [selectedFloorId, setSelectedFloorId] = useState(null);
@@ -18,22 +16,68 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [roomsLoading, setRoomsLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [roomsLoadResult, setRoomsLoadResult] = useState({
+    floorId: null,
+    rooms: [],
+    error: "",
+  });
+  const [bookingRoom, setBookingRoom] = useState(null);
+  const [startTime, setStartTime] = useState("");
+  const [endTime, setEndTime] = useState("");
+  const [specialRequest, setSpecialRequest] = useState("");
+  const [bookingError, setBookingError] = useState("");
+  const [bookingNotice, setBookingNotice] = useState("");
+  const [bookingSaving, setBookingSaving] = useState(false);
+  const canBook =
+    user && (!user.roles?.length || user.roles.includes("Oktato"));
+
+  const submitBooking = async (event) => {
+    event.preventDefault();
+    setBookingError("");
+    setBookingNotice("");
+
+    if (!user?.id || !bookingRoom || !startTime || !endTime) {
+      setBookingError("Válassz időpontot a foglaláshoz.");
+      return;
+    }
+    if (new Date(startTime) >= new Date(endTime)) {
+      setBookingError("A foglalás kezdete legyen korábbi a végénél.");
+      return;
+    }
+
+    setBookingSaving(true);
+    try {
+      await request(
+        "/bookings",
+        jsonOptions("POST", {
+          userId: Number(user.id),
+          roomId: bookingRoom.id,
+          startTime,
+          endTime,
+          specialRequest: specialRequest.trim(),
+        }),
+      );
+      setBookingNotice("A foglalási kérelmet rögzítettük.");
+      setBookingRoom(null);
+      setStartTime("");
+      setEndTime("");
+      setSpecialRequest("");
+      onBookingCreated?.();
+    } catch (bookingSubmitError) {
+      setBookingError(bookingSubmitError.message);
+    } finally {
+      setBookingSaving(false);
+    }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [buildingsRes, floorsRes] = await Promise.all([
-          fetch(`${API_BASE_URL}/Building/getall`),
-          fetch(`${API_BASE_URL}/Floor/getall`),
+        const [buildingsData, floorsData] = await Promise.all([
+          request("/Building/getall"),
+          request("/Floor/getall"),
         ]);
-
-        if (!buildingsRes.ok || !floorsRes.ok) {
-          throw new Error("Hiba történt az adatok lekérdezésekor.");
-        }
-
-        const buildingsData = await buildingsRes.json();
-        const floorsData = await floorsRes.json();
 
         setBuildings(buildingsData);
         setFloors(floorsData);
@@ -60,24 +104,30 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
-    if (!selectedFloorId) return;
+    if (!selectedFloorId) return undefined;
 
     let isMounted = true;
 
     const fetchRooms = async () => {
       try {
         setRoomsLoading(true);
-        const res = await fetch(
-          `${API_BASE_URL}/Floor/${selectedFloorId}/rooms`,
-        );
-        if (!res.ok) {
-          throw new Error("Nem sikerült betölteni a termeket.");
+        const roomsData = await request(`/Floor/${selectedFloorId}/rooms`);
+        if (isMounted) {
+          setRoomsLoadResult({
+            floorId: selectedFloorId,
+            rooms: roomsData,
+            error: "",
+          });
         }
-        const roomsData = await res.json();
-        if (isMounted) setRooms(roomsData);
       } catch (err) {
         console.error(err);
-        if (isMounted) setRooms([]);
+        if (isMounted) {
+          setRoomsLoadResult({
+            floorId: selectedFloorId,
+            rooms: [],
+            error: `A termek betöltése nem sikerült: ${err.message}`,
+          });
+        }
       } finally {
         if (isMounted) setRoomsLoading(false);
       }
@@ -97,7 +147,6 @@ export default function Dashboard() {
       setSelectedFloorId(availableFloors[0].id);
     } else {
       setSelectedFloorId(null);
-      setRooms([]);
     }
   };
 
@@ -139,7 +188,10 @@ export default function Dashboard() {
   );
   const selectedFloor = floors.find((f) => f.id === selectedFloorId);
 
-  const currentRooms = selectedFloorId ? rooms : [];
+  const currentRooms =
+    roomsLoadResult.floorId === selectedFloorId ? roomsLoadResult.rooms : [];
+  const roomsError =
+    roomsLoadResult.floorId === selectedFloorId ? roomsLoadResult.error : "";
 
   return (
     <div className="dashboard-container">
@@ -189,8 +241,7 @@ export default function Dashboard() {
       <section className="step-section">
         <div className="step-header">
           <h3>
-            Terem és kulcs foglalása ({getBuildingDisplayName(selectedBuilding)}
-            ,{" "}
+            Termek ({getBuildingDisplayName(selectedBuilding)},{" "}
             {selectedFloor
               ? getFloorDisplayName(selectedFloor)
               : "nincs emelet"}
@@ -200,39 +251,106 @@ export default function Dashboard() {
 
         {roomsLoading ? (
           <p>Termek betöltése...</p>
+        ) : roomsError ? (
+          <p className="auth-error" role="alert">
+            {roomsError}
+          </p>
         ) : currentRooms.length === 0 ? (
-          <p>Ezen az emeleten nincs foglalható terem.</p>
+          <p>Ezen az emeleten nincs terem.</p>
         ) : (
           <div className="cards-grid rooms-grid">
-            {currentRooms.map((room) => {
-              const isAvailable = room.keyAvailable ?? room.isAvailable ?? true;
-              return (
-                <div key={room.id} className="room-card">
-                  <div className="room-header">
-                    <h4 className="room-title">
-                      {room.name || room.roomNumber}
-                    </h4>
-                    <span
-                      className={`key-badge ${
-                        isAvailable ? "available" : "borrowed"
-                      }`}
-                    >
-                      {isAvailable ? "Kulcs Felvehető" : "Kiadva"}
+            {currentRooms.map((room) => (
+              <div key={room.id} className="room-card">
+                <div className="room-header">
+                  <h4 className="room-title">{room.name}</h4>
+                </div>
+                <div className="room-details">
+                  <div className="detail-item">
+                    <span className="detail-label">Kapacitás</span>
+                    <span className="detail-value">{room.capacity}</span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">Felszereltség</span>
+                    <span className="detail-value">
+                      {room.equipment || "Nincs megadva"}
                     </span>
                   </div>
-
-                  <div className="room-action">
-                    <button
-                      className={`book-key-btn ${!isAvailable ? "disabled" : ""}`}
-                      disabled={!isAvailable}
-                    >
-                      {isAvailable ? "Book Key" : "Nincs Kulcs"}
-                    </button>
-                  </div>
                 </div>
-              );
-            })}
+                {canBook && (
+                  <button
+                    type="button"
+                    className="primary-btn"
+                    onClick={() => {
+                      setBookingRoom(room);
+                      setBookingError("");
+                      setBookingNotice("");
+                    }}
+                  >
+                    Terem foglalása
+                  </button>
+                )}
+                {bookingRoom?.id === room.id && (
+                  <form className="booking-form" onSubmit={submitBooking}>
+                    <label className="form-group">
+                      Kezdés
+                      <input
+                        type="datetime-local"
+                        value={startTime}
+                        onChange={(event) => setStartTime(event.target.value)}
+                        required
+                      />
+                    </label>
+                    <label className="form-group">
+                      Befejezés
+                      <input
+                        type="datetime-local"
+                        value={endTime}
+                        onChange={(event) => setEndTime(event.target.value)}
+                        required
+                      />
+                    </label>
+                    <label className="form-group">
+                      Megjegyzés
+                      <textarea
+                        value={specialRequest}
+                        onChange={(event) =>
+                          setSpecialRequest(event.target.value)
+                        }
+                        maxLength={1000}
+                      />
+                    </label>
+                    {bookingError && (
+                      <p className="auth-error" role="alert">
+                        {bookingError}
+                      </p>
+                    )}
+                    <div className="booking-form-actions">
+                      <button
+                        type="button"
+                        className="cancel-btn"
+                        onClick={() => setBookingRoom(null)}
+                        disabled={bookingSaving}
+                      >
+                        Mégse
+                      </button>
+                      <button
+                        type="submit"
+                        className="primary-btn"
+                        disabled={bookingSaving}
+                      >
+                        {bookingSaving ? "Küldés..." : "Foglalás beküldése"}
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </div>
+            ))}
           </div>
+        )}
+        {bookingNotice && (
+          <p className="booking-success" role="status">
+            {bookingNotice}
+          </p>
         )}
       </section>
     </div>

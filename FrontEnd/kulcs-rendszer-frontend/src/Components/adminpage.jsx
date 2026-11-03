@@ -1,29 +1,5 @@
 import { useEffect, useState } from "react";
-
-const API_BASE_URL = "http://localhost:5000/api";
-
-async function request(path, options = {}) {
-  const response = await fetch(`${API_BASE_URL}${path}`, options);
-
-  if (!response.ok) {
-    const details = await response.text();
-    throw new Error(
-      details ||
-        `A kérés sikertelen (${response.status} ${response.statusText}).`,
-    );
-  }
-
-  if (response.status === 204) return null;
-  return response.json();
-}
-
-function jsonOptions(method, body) {
-  return {
-    method,
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  };
-}
+import { getUserFromToken, jsonOptions, request } from "../api.js";
 
 function getFloorDisplayName(floor) {
   if (!Number.isInteger(floor?.number)) return "Ismeretlen emelet";
@@ -477,15 +453,14 @@ export default function AdminPage() {
 
   const submitUserForm = async (event) => {
     event.preventDefault();
-    const isEditing = userForm.id !== undefined;
     const payload = {
       name: userForm.name.trim(),
       email: userForm.email.trim(),
       password: userForm.password,
     };
 
-    if (!payload.name || !payload.email || (!isEditing && !payload.password)) {
-      setError("A név, e-mail-cím és új felhasználónál a jelszó is kötelező.");
+    if (!payload.name || !payload.email || !payload.password) {
+      setError("A név, e-mail-cím és jelszó megadása kötelező.");
       return;
     }
 
@@ -493,10 +468,25 @@ export default function AdminPage() {
     setError("");
     setNotice("");
     try {
-      const user = await request(
-        isEditing ? `/User/update/${userForm.id}` : "/User/create",
-        jsonOptions(isEditing ? "PUT" : "POST", payload),
-      );
+      const token = await request("/User/create", jsonOptions("POST", payload));
+      if (typeof token !== "string" || !token) {
+        throw new Error(
+          "A felhasználó létrejött, de nem érkezett azonosító token.",
+        );
+      }
+      const createdUserClaims = getUserFromToken(token);
+      const createdUserId = Number(createdUserClaims.id);
+      if (!Number.isInteger(createdUserId) || createdUserId < 1) {
+        throw new Error(
+          "A létrehozási token nem tartalmaz felhasználói azonosítót.",
+        );
+      }
+      const user = {
+        id: createdUserId,
+        roleId: null,
+        name: createdUserClaims.name || payload.name,
+        email: createdUserClaims.email || payload.email,
+      };
       setSelectedUser(user);
       setUsers((currentUsers) => {
         const existingIndex = currentUsers.findIndex(
@@ -511,9 +501,7 @@ export default function AdminPage() {
       setRoleIdInput(user.roleId == null ? "" : String(user.roleId));
       setUserForm(null);
       setNotice(
-        isEditing
-          ? "A felhasználó adatai frissültek."
-          : `A felhasználó létrejött. Azonosítója: ${user.id}.`,
+        `A felhasználó létrejött. Azonosítója: ${user.id}. Ha szükséges, rendelj hozzá szerepkört.`,
       );
     } catch (saveError) {
       setError(`A felhasználó mentése nem sikerült: ${saveError.message}`);
@@ -1425,11 +1413,12 @@ export default function AdminPage() {
               className="admin-form admin-user-form"
               onSubmit={submitUserForm}
             >
-              <h3>
-                {userForm.id === undefined
-                  ? "Új felhasználó létrehozása"
-                  : "Felhasználó adatainak módosítása"}
-              </h3>
+              <h3>Új felhasználó létrehozása</h3>
+              <p className="admin-note">
+                A létrehozás után a felhasználó azonosítójával szerepkört is
+                rendelhetsz hozzá. Meglévő fiók adatainak adminisztrátori
+                módosításához jelenleg nincs backend API.
+              </p>
               <label>
                 Név
                 <input
@@ -1456,15 +1445,11 @@ export default function AdminPage() {
                 />
               </label>
               <label>
-                {userForm.id === undefined
-                  ? "Jelszó"
-                  : "Új jelszó (üresen hagyva nem változik)"}
+                Jelszó
                 <input
-                  required={userForm.id === undefined}
+                  required
                   type="password"
-                  autoComplete={
-                    userForm.id === undefined ? "new-password" : "off"
-                  }
+                  autoComplete="new-password"
                   value={userForm.password}
                   onChange={(event) =>
                     setUserForm({ ...userForm, password: event.target.value })
@@ -1502,20 +1487,6 @@ export default function AdminPage() {
                   <p>{selectedUser.email}</p>
                 </div>
                 <div className="admin-record-actions">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setUserForm({
-                        id: selectedUser.id,
-                        name: selectedUser.name,
-                        email: selectedUser.email,
-                        password: "",
-                      })
-                    }
-                    disabled={saving}
-                  >
-                    Módosítás
-                  </button>
                   <button
                     type="button"
                     className="admin-danger-link"
