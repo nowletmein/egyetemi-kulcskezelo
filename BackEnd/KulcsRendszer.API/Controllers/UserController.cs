@@ -25,6 +25,12 @@ namespace KulcsRendszer.Controllers {
             return Ok(user);
         }
 
+        [HttpGet]
+        public async Task<IActionResult> GetAll() {
+            var users = await _userService.GetAll();
+            return Ok(users);
+        }
+
         [HttpGet("info/{id}")]
         public async Task<IActionResult> GetInfo(int id) {
             var userInfo = await _userService.GetInfo(id);
@@ -78,6 +84,36 @@ namespace KulcsRendszer.Controllers {
                 return NotFound($"User with this ID {id} is not found!");
             }
             return NoContent();
+        }
+        //Role
+        [HttpPost("role/{userId}")]
+        public async Task<IActionResult> AddRoleToUser(int userId, [FromBody] int roleId) {
+            var success = await _userService.AddRoleToUser(userId, roleId);
+            return Ok(success);
+        }
+
+        [HttpPost("role/")]
+        public async Task<IActionResult> AddRole([FromBody] RoleCreateDto roleCreateDto) {
+            var role = await _userService.CreateRole(roleCreateDto);
+            return Ok(role);
+        }
+
+        [HttpDelete("role/{Id}")]
+        public async Task<IActionResult> DeleteRole(int Id) {
+            var success = await _userService.DeleteRole(Id);
+            return Ok(success);
+        }
+
+        [HttpDelete("role/remove/{Id}")]
+        public async Task<IActionResult> RemoveFromUser(int Id) {
+            var success = await _userService.RemoveRoleFromUser(Id);
+            return Ok(success);
+        }
+
+        [HttpGet("roles")]
+        public async Task<IActionResult> GetAllRoles() {
+            var roles = await _userService.GetAllRoles();
+            return Ok(roles);
         }
     }
 }

@@ -15,6 +15,7 @@ namespace KulcsRendszer.Services.Services {
     public interface IUserService {
         //User
         Task<UserDto?> Get(int userId);
+        Task<List<UserDto>> GetAll();
         Task<UserInfoDto?> GetInfo(int userId);
         Task<UserDto> Create(UserCreateDto userCreateDto);
         Task<UserDto?> Update(int userId, UserUpdateDto userUpdateDto);
@@ -24,10 +25,11 @@ namespace KulcsRendszer.Services.Services {
         Task<string> Login(string email, string password);
         //Role
         Task<int> CreateRole(RoleCreateDto roleCreateDto);
-        Task<int> AddRoleToUser(int userId, int roleId);
+        Task<bool> AddRoleToUser(int userId, int roleId);
         Task<RoleDto?> GetRole(int roleId);
-        Task<int> DeleteRole(int roleId);
-        Task<int> RemoveRoleFromUser(int userId, int roleId);
+        Task<List<RoleDto>> GetAllRoles();
+        Task<bool> DeleteRole(int roleId);
+        Task<bool> RemoveRoleFromUser(int userId);
     }
 
     public class UserService : IUserService {
@@ -89,6 +91,18 @@ namespace KulcsRendszer.Services.Services {
             return MapToUserDto(user);
         }
 
+        public async Task<List<UserDto>> GetAll() {
+            var users = await _context.Users
+                .Include(u => u.Role)
+                .Include(u => u.Bookings)
+                .Include(u => u.KeyMovements)
+                .Include(u => u.ReportedTickets)
+                .Include(u => u.OrderedMaintenances)
+                .ToListAsync();
+
+            return users.Select(MapToUserDto).ToList();
+        }
+
         public async Task<UserInfoDto?> GetInfo(int userId) {
             var user = await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Id == userId);
 
@@ -99,7 +113,7 @@ namespace KulcsRendszer.Services.Services {
             return new UserInfoDto {
                 Id = user.Id,
                 RoleId = user.RoleId,
-                Role = user.Role,
+                Role = user.Role == null ? null : MapToRoleDto(user.Role),
                 Name = user.Name,
                 Email = user.Email
             };
@@ -188,8 +202,21 @@ namespace KulcsRendszer.Services.Services {
             return role.Id;
         }
 
-        public async Task<int> AddRoleToUser(int userId, int roleId) {
-            throw new NotImplementedException();
+        public async Task<bool> AddRoleToUser(int userId, int roleId) {
+            var user = await _context.Users.Include(x => x.Role).FirstOrDefaultAsync(u => u.Id == userId);
+            var role = await _context.Roles.FirstOrDefaultAsync(x => x.Id == roleId);
+
+            if (user == null) {
+                throw new UserNotFoundException("User not found with this Id: " + userId);
+            }
+            if (role == null) {
+                throw new RoleNotFoundException("Role not found with this Id: " + roleId);
+            }
+
+            user.Role = role;
+            user.RoleId = roleId;
+            await _context.SaveChangesAsync();
+            return true;
         }
 
         public async Task<RoleDto?> GetRole(int roleId) {
@@ -200,12 +227,35 @@ namespace KulcsRendszer.Services.Services {
             return MapToRoleDto(role);
         }
 
-        public async Task<int> DeleteRole(int roleId) {
-            throw new NotImplementedException();
+        public async Task<List<RoleDto>> GetAllRoles() {
+            var roles = await _context.Roles.ToListAsync();
+            return roles.Select(MapToRoleDto).ToList();
         }
 
-        public async Task<int> RemoveRoleFromUser(int userId, int roleId) {
-            throw new NotImplementedException();
+        public async Task<bool> DeleteRole(int roleId) {
+            var role = _context.Roles.FirstOrDefault(x => x.Id == roleId);
+            if (role == null) {
+                throw new RoleNotFoundException("Role not found with this Id");
+            }
+            _context.Roles.Remove(role);
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<bool> RemoveRoleFromUser(int userId) {
+            var user = await _context.Users.Include(x => x.Role).FirstOrDefaultAsync(u => u.Id == userId);
+
+            if (user == null) {
+                throw new UserNotFoundException("User not found with this Id: " + userId);
+            }
+
+            if (user.Role == null) {
+                throw new RoleAlreadyExistsException("User doesent has role: ");
+            }
+            user.Role = null;
+            user.RoleId = null;
+            await _context.SaveChangesAsync();
+            return true;
         }
     }
 }

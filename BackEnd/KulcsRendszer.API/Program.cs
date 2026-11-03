@@ -52,6 +52,8 @@ namespace KulcsRendszer.API {
             builder.Services.AddScoped<IUserService, UserService>();
             builder.Services.AddScoped<IRoomService, RoomService>();
             builder.Services.AddScoped<IBookingService, BookingService>();
+            builder.Services.AddScoped<IBuildingService, BuildingService>();
+            builder.Services.AddScoped<IFloorService, FloorService>();
             //database service
             //builder.Services.AddDbContext<KulcsRendszerDbContext>(options =>
             //options.UseSqlServer(@"Server=(localdb)\mssqllocaldb;Database=KulcsRendszerDB;Trusted_Connection=True;TrustServerCertificate=true"));
@@ -73,6 +75,11 @@ namespace KulcsRendszer.API {
                 app.UseSwagger();
                 app.UseSwaggerUI();
             }
+
+            app.UseCors("ReactPolicy");
+
+            app.UseAuthentication();
+            app.UseAuthorization();
 
             app.MapControllers();
             app.MapHealthChecks("/api/health");

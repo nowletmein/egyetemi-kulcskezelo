@@ -1,4 +1,5 @@
 # egyetemi-kulcskezelo
+
 Egyetemi Kulcs- és Teremnyilvántartó Rendszer PROJEKT LABOR - 2026/27/1 Csoport munka
 
 ---
@@ -8,6 +9,7 @@ Egyetemi Kulcs- és Teremnyilvántartó Rendszer PROJEKT LABOR - 2026/27/1 Csopo
 Az egyetemi oktatasi termek, laborok, valamint a hozzajuk tartozo fizikai kulcsok nyilvantartasa gyakran manualisan, papiralapon tortenik, ami adminisztracios terhet, kulcselvesztest es foglalasi utkozeseket eredmenyez.
 
 A rendszer celja egy kozpontositott, digitalis felulet biztositasa, amely:
+
 - Valos idoben koveti a fizikai kulcsok kiadasat es visszavetelet.
 - Kezeli az oktatok idopontalapu teremfoglalasait es a termek kapacitasat.
 - Digitalis hibajegykezelo modult nyujt a serult kulcsok, zarak vagy teremi eszkozok bejelentesere.
@@ -17,12 +19,12 @@ A rendszer celja egy kozpontositott, digitalis felulet biztositasa, amely:
 
 ## 2. Szerepkorok es jogosultsagok
 
-| Szerepkor | Jogosultsagok es feladatok |
-| :--- | :--- |
-| **Oktato** | Szabad termek keresese kapacitas alapjan, teremfoglalas inditasa, sajat foglalasok megtekintese, hibajegyek bejelentese. |
-| **Portas** | Kulcsok fizikai kiadasanak es visszavetelenek gyors rogzitese, kulcsstatuszok lekerdezese (benn/kint), serulesek es vesztesegek azonnali jelzese. |
-| **Admin** | Felhasznaloi fiokok es szerepkorok kezelese, uj termek es kulcsok felvitele, karbantartasok elrendelese, mesterkulcs-jogok kiosztasa, teljes audit log elerese. |
-| **Igazgato** | Statisztikai kimutatasok, kihasznaltsagi riportok es hibanaplok megtekintese (olvasasi jog). |
+| Szerepkor    | Jogosultsagok es feladatok                                                                                                                                      |
+| :----------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Oktato**   | Szabad termek keresese kapacitas alapjan, teremfoglalas inditasa, sajat foglalasok megtekintese, hibajegyek bejelentese.                                        |
+| **Portas**   | Kulcsok fizikai kiadasanak es visszavetelenek gyors rogzitese, kulcsstatuszok lekerdezese (benn/kint), serulesek es vesztesegek azonnali jelzese.               |
+| **Admin**    | Felhasznaloi fiokok es szerepkorok kezelese, uj termek es kulcsok felvitele, karbantartasok elrendelese, mesterkulcs-jogok kiosztasa, teljes audit log elerese. |
+| **Igazgato** | Statisztikai kimutatasok, kihasznaltsagi riportok es hibanaplok megtekintese (olvasasi jog).                                                                    |
 
 ---
 
@@ -31,10 +33,12 @@ A rendszer celja egy kozpontositott, digitalis felulet biztositasa, amely:
 A projekt egy tobbkonteneres kornyezetben fut, amely magaban foglalja a **React** frontendet, a **.NET Core** backend REST API-t, valamint az **MSSQL** adatbazis-kiszolgalot. A teljes infrastruktura a legegyszerubben Docker segitsegevel indithato el.
 
 ### Elokovetelmenyek
+
 - [Docker Desktop](https://www.docker.com/) telepitve es futtatva
 - [Git](https://git-scm.com/)
 
 ### Gyors inditas
+
 A projekt gyokerkonyvtaraban futtasd a kovetkezo parancsot:
 
 ```bash
@@ -42,11 +46,13 @@ docker compose up --build
 ```
 
 A kontener-infrastruktura leallitasa:
+
 ```bash
 docker compose down
 ```
 
 ### A futo szolgaltatasok portjai:
+
 - Backend: 5000:8080
 - Frontend: 3000:80
 - Database: 1433:1433
@@ -61,7 +67,7 @@ graph TB
 
     subgraph system_boundary ["Egyetemi Kulcs- es Teremnyilvantarto Rendszer"]
         direction TB
-        
+
         spa["<b>Kliens (UI)</b><br/><i>[React]</i><br/><small>Bejelentkezes, naptar, kulcskezelo, riportok</small>"]
         backend["<b>Backend API (Auth + Uzleti Logika)</b><br/><i>[C# / .NET]</i><br/><small>Autentikacio, RBAC, utkozesvizsgalat, audit log, ertesitesek</small>"]
         database[("<b>Adatbazis</b><br/><i>[MSSQL]</i><br/><small>3NF adatmodell: termek, kulcsok, foglalások, audit</small>")]
@@ -203,20 +209,42 @@ erDiagram
 ```
 
 ## 6. API dokumentáció
+
 **Health**
-- GET /api/Health: A rendszer és az adatbázis-kapcsolat valós idejű állapotának lekérdezése. 
+
+- GET /api/Health: A rendszer es az adatbazis-kapcsolat valos ideju allapotanak lekerdezese.
 
 **KulcsRendszer.API**
-- GET / : Alapértelmezett gyökér végpont az API futásának és elérhetőségének ellenőrzésére. 
 
+- GET / : Alapertelmezett gyoker vegpont az API futasanak es elerhetosegenek ellenorzesere.
 
 **User**
-- GET /api/User/{id} : Egy adott azonosítójú felhasználó alapvető adatainak lekérdezése. 
-- DELETE /api/User/{id} : Felhasználó törlése a rendszerből id alapján. 
-- POST /api/User/create : Új felhasználó regisztrációja / létrehozása a rendszerben. 
-- PUT /api/User/update/{id} : Meglévő felhasználó adatainak módosítása. 
-- POST /api/User/change-password/{id} : Felhasználó jelszavának biztonságos megváltoztatása. 
 
+- GET /api/User/{id} : Egy adott azonositoju felhasznalo alapveto adatainak lekerdezese.
+- DELETE /api/User/{id} : Felhasznalo torlese a rendszerbol id alapjan.
+- POST /api/User/create : Uj felhasznalo regisztracioja / letrehozasa a rendszerben.
+- PUT /api/User/update/{id} : Meglevo felhasznalo adatainak modositasa.
+- POST /api/User/change-password/{id} : Felhasznalo jelszavanak biztonsagos megvaltoztatasa.
+- POST /api/User/role/{userId} : Szerepkor hozzarendelese egy adott azonositoju felhasznalohoz.
+- POST /api/User/role : Uj szerepkor hozzaadasa / letrehozasa a rendszerben.
+- DELETE /api/User/role/{Id} : Szerepkor torlese a rendszerbol id alapjan.
+- DELETE /api/User/role/remove/{Id} : Szerepkor eltavolita egy felhasznalotol vagy a rendszerbol id alapjan.
 
 **Floor**
-- GET /api/floors/{floorId}/rooms : Egy adott emelethez tartozó termek listájának és azok tulajdonságainak lekérdezése. 
+
+- GET /api/Floor/getall : Az osszes emelet listajanak lekerdezese a rendszerbol.
+- GET /api/Floor/get/{id} : Egy adott azonositoju emelet alapadatainak lekerdezese.
+- GET /api/Floor/info/{id} : Egy adott azonositoju emelet reszletes informacioinak lekerdezese.
+- GET /api/Floor/{floorId}/rooms : Egy adott emelethez tartozo termek listajanak es azok tulajdonsagainak lekerdezese.
+- POST /api/Floor/create : Uj emelet letrehozasa a rendszerben.
+- PUT /api/Floor/update/{id} : Meglevo emelet adatainak modositasa id alapjan.
+- DELETE /api/Floor/delete/{id} : Emelet torlese a rendszerbol id alapjan.
+
+**Building**
+
+- GET /api/Building/getall : Az epuletek teljes listajanak lekerdezese a rendszerbol.
+- GET /api/Building/get/{id} : Egy adott azonositoju epulet alapadatainak lekerdezese.
+- GET /api/Building/info/{id} : Egy adott azonositoju epulet reszletes informacioinak lekerdezese.
+- POST /api/Building/create : Uj epulet letrehozasa a rendszerben.
+- PUT /api/Building/update/{id} : Meglevo epulet adatainak modositasa id alapjan.
+- DELETE /api/Building/delete/{id} : Epulet torlese a rendszerbol id alapjan.

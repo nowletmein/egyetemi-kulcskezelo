@@ -1,5 +1,3 @@
-
-
 services:
   database:
     user: 0:0
@@ -12,8 +10,6 @@ services:
       - "1433:1433"
     volumes:
       - mssql_data:/var/opt/mssql/data
-  
-  
 
   backend:
     build:

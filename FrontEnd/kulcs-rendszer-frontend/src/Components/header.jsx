@@ -29,6 +29,12 @@ export default function Header({
           >
             Saját kulcsok
           </button>
+          <button
+            className={`nav-btn ${currentPage === "admin" ? "active" : ""}`}
+            onClick={() => setCurrentPage("admin")}
+          >
+            Adminisztráció
+          </button>
 
           <div
             className={`user-profile-clickable ${currentPage === "profile" ? "active-profile" : ""}`}
