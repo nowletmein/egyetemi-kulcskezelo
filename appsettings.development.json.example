@@ -1,0 +1,6 @@
+{
+  "SeedData": {
+    "AdminEmail": "admin@example.com",
+    "AdminPassword": "Password123!"
+  }
+}

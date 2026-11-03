@@ -9,8 +9,6 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace KulcsRendszer.API {
     public class Program {
-        private const string BuildingMigrationId = "20261018095009_AddBuildingFloorRelationship";
-        private const string FloorRoomMigrationId = "20261014121157_AddFloorRoomRelationship";
 
         public static async Task Main(string[] args) {
             var builder = WebApplication.CreateBuilder(args);
@@ -46,7 +44,27 @@ namespace KulcsRendszer.API {
             //swagger gen
             builder.Services.AddControllers();
             builder.Services.AddEndpointsApiExplorer();
-            builder.Services.AddSwaggerGen();
+            builder.Services.AddSwaggerGen(c => {
+                c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme {
+                    Description = "JWT Authorization header using the Bearer scheme.",
+                    Name = "Authorization",
+                    In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+                    Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http,
+                    Scheme = "bearer"
+                });
+
+                c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement {
+                    {
+                        new Microsoft.OpenApi.Models.OpenApiSecurityScheme {
+                            Reference = new Microsoft.OpenApi.Models.OpenApiReference {
+                                Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                                Id = "Bearer"
+                            }
+                        },
+                        new string[] {}
+                    }
+                });
+            });
 
             //controllers
             builder.Services.AddScoped<IUserService, UserService>();
@@ -59,7 +77,11 @@ namespace KulcsRendszer.API {
             //options.UseSqlServer(@"Server=(localdb)\mssqllocaldb;Database=KulcsRendszerDB;Trusted_Connection=True;TrustServerCertificate=true"));
 
             builder.Services.AddDbContext<KulcsRendszerDbContext>(options =>
-                options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection") ?? "Server=db;Database=KulcsRendszerDB;User Id=sa;Password=YourPassword123!;TrustServerCertificate=true"));
+                options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection") ?? "Server=database,1433;Database=KulcsRendszerDb;User Id=sa;Password=YourPassword123!;TrustServerCertificate=true",
+                sqlOptions => sqlOptions.EnableRetryOnFailure(
+                    maxRetryCount: 10,
+                    maxRetryDelay: TimeSpan.FromSeconds(5),
+                    errorNumbersToAdd: null)));
 
             //healthchek for database
             builder.Services.AddHealthChecks()
@@ -89,12 +111,23 @@ namespace KulcsRendszer.API {
                 try {
                     var dbContext = scope.ServiceProvider.GetRequiredService<KulcsRendszerDbContext>();
                     dbContext.Database.Migrate();
+
+
                 }
                 catch (Exception ex) {
                     Console.WriteLine($"Adatbázis migrácó hiba: {ex.Message}");
                 }
             }
-
+            using (var scope = app.Services.CreateScope()) {
+                try {
+                    if (app.Environment.IsDevelopment()) {
+                        await DbInitializer.SeedAsync(scope.ServiceProvider, builder.Configuration);
+                    }
+                }
+                catch (Exception ex) {
+                    Console.WriteLine($"Adatbázis migrácó hiba: {ex.Message}");
+                }
+            }
             app.Run();
         }
     }
