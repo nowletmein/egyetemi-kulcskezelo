@@ -66,9 +66,9 @@ docker compose down
 
 Az elso inditaskor az adatbazis-seed letrehozza mind a negy szerepkort, es egy Admin felhasznalot. Az alabbi bejelentkezesi adatok az `.env.sample` fejlesztoi alapertelmezesei; a fent jelzett valtozonev-javitas utan hasznalhatok:
 
-| Szerepkor | Nev | E-mail / felhasznalonev | Jelszo |
-| :--- | :--- | :--- | :--- |
-| Admin | Rendszergazda | `admin@example.com` | `StrongDevPassword123!` |
+| Szerepkor | Nev           | E-mail / felhasznalonev | Jelszo                  |
+| :-------- | :------------ | :---------------------- | :---------------------- |
+| Admin     | Rendszergazda | `admin@example.com`     | `StrongDevPassword123!` |
 
 Ez a fiok es jelszo csak fejlesztoi tesztadathoz valo, eles rendszerben ne hasznald. A seed nem hoz letre Oktato, Portas vagy Igazgato tesztfelhasznalot. Regisztracio utan az uj felhasznalonak nincs szerepkore; Admin fiokkal a felhasznalo kezelo feluleten rendelheto hozza. A szerepkorok ID-it a `GET /api/User/roles` vegponttal lehet lekerdezni.
 

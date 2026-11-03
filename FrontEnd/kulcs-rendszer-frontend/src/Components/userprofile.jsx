@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { jsonOptions, request } from "../api.js";
 
 export default function UserProfile({ user, onUserUpdated }) {
   const [isEditingData, setIsEditingData] = useState(false);
-  const [name, setName] = useState(user?.name || "");
-  const [email, setEmail] = useState(user?.email || "");
+  const [editedName, setEditedName] = useState("");
+  const [editedEmail, setEditedEmail] = useState("");
 
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -19,10 +19,8 @@ export default function UserProfile({ user, onUserUpdated }) {
         ["Oktato", "Portas", "Admin", "Igazgato"].includes(role),
       ));
 
-  useEffect(() => {
-    setName(user?.name || "");
-    setEmail(user?.email || "");
-  }, [user?.name, user?.email]);
+  const name = user?.name || "";
+  const email = user?.email || "";
 
   const handleSaveData = async (e) => {
     e.preventDefault();
@@ -33,17 +31,15 @@ export default function UserProfile({ user, onUserUpdated }) {
       const updatedUser = await request(
         "/User/update",
         jsonOptions("PUT", {
-          name: name.trim(),
-          email: email.trim(),
+          name: editedName.trim(),
+          email: editedEmail.trim(),
           password: "",
         }),
       );
       const updatedDetails = {
-        name: updatedUser?.name || name.trim(),
-        email: updatedUser?.email || email.trim(),
+        name: updatedUser?.name || editedName.trim(),
+        email: updatedUser?.email || editedEmail.trim(),
       };
-      setName(updatedDetails.name);
-      setEmail(updatedDetails.email);
       onUserUpdated?.(updatedDetails);
       setIsEditingData(false);
       setNotice("Személyes adatok sikeresen frissítve.");
@@ -122,6 +118,8 @@ export default function UserProfile({ user, onUserUpdated }) {
                     onClick={() => {
                       setError("");
                       setNotice("");
+                      setEditedName(name);
+                      setEditedEmail(email);
                       setIsEditingData(true);
                     }}
                     disabled={saving}
@@ -138,8 +136,8 @@ export default function UserProfile({ user, onUserUpdated }) {
                     <input
                       type="text"
                       id="edit-name"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
+                      value={editedName}
+                      onChange={(e) => setEditedName(e.target.value)}
                       required
                     />
                   </div>
@@ -148,8 +146,8 @@ export default function UserProfile({ user, onUserUpdated }) {
                     <input
                       type="email"
                       id="edit-email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      value={editedEmail}
+                      onChange={(e) => setEditedEmail(e.target.value)}
                       required
                     />
                   </div>
@@ -165,8 +163,6 @@ export default function UserProfile({ user, onUserUpdated }) {
                       type="button"
                       className="cancel-btn"
                       onClick={() => {
-                        setName(user?.name || "");
-                        setEmail(user?.email || "");
                         setIsEditingData(false);
                       }}
                       disabled={saving}

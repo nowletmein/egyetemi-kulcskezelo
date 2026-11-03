@@ -468,17 +468,18 @@ export default function AdminPage() {
     setError("");
     setNotice("");
     try {
-      const token = await request(
-        "/User/create",
-        jsonOptions("POST", payload),
-      );
+      const token = await request("/User/create", jsonOptions("POST", payload));
       if (typeof token !== "string" || !token) {
-        throw new Error("A felhasználó létrejött, de nem érkezett azonosító token.");
+        throw new Error(
+          "A felhasználó létrejött, de nem érkezett azonosító token.",
+        );
       }
       const createdUserClaims = getUserFromToken(token);
       const createdUserId = Number(createdUserClaims.id);
       if (!Number.isInteger(createdUserId) || createdUserId < 1) {
-        throw new Error("A létrehozási token nem tartalmaz felhasználói azonosítót.");
+        throw new Error(
+          "A létrehozási token nem tartalmaz felhasználói azonosítót.",
+        );
       }
       const user = {
         id: createdUserId,

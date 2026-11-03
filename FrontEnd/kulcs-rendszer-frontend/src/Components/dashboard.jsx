@@ -9,7 +9,6 @@ function getFloorDisplayName(floor) {
 export default function Dashboard({ user, onBookingCreated }) {
   const [buildings, setBuildings] = useState([]);
   const [floors, setFloors] = useState([]);
-  const [rooms, setRooms] = useState([]);
 
   const [selectedBuildingId, setSelectedBuildingId] = useState(null);
   const [selectedFloorId, setSelectedFloorId] = useState(null);
@@ -17,7 +16,11 @@ export default function Dashboard({ user, onBookingCreated }) {
   const [loading, setLoading] = useState(true);
   const [roomsLoading, setRoomsLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [roomsError, setRoomsError] = useState("");
+  const [roomsLoadResult, setRoomsLoadResult] = useState({
+    floorId: null,
+    rooms: [],
+    error: "",
+  });
   const [bookingRoom, setBookingRoom] = useState(null);
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
@@ -26,8 +29,7 @@ export default function Dashboard({ user, onBookingCreated }) {
   const [bookingNotice, setBookingNotice] = useState("");
   const [bookingSaving, setBookingSaving] = useState(false);
   const canBook =
-    user &&
-    (!user.roles?.length || user.roles.includes("Oktato"));
+    user && (!user.roles?.length || user.roles.includes("Oktato"));
 
   const submitBooking = async (event) => {
     event.preventDefault();
@@ -102,25 +104,29 @@ export default function Dashboard({ user, onBookingCreated }) {
   }, []);
 
   useEffect(() => {
-    if (!selectedFloorId) {
-      setRooms([]);
-      setRoomsError("");
-      return;
-    }
+    if (!selectedFloorId) return undefined;
 
     let isMounted = true;
 
     const fetchRooms = async () => {
       try {
         setRoomsLoading(true);
-        setRoomsError("");
         const roomsData = await request(`/Floor/${selectedFloorId}/rooms`);
-        if (isMounted) setRooms(roomsData);
+        if (isMounted) {
+          setRoomsLoadResult({
+            floorId: selectedFloorId,
+            rooms: roomsData,
+            error: "",
+          });
+        }
       } catch (err) {
         console.error(err);
         if (isMounted) {
-          setRooms([]);
-          setRoomsError(`A termek betöltése nem sikerült: ${err.message}`);
+          setRoomsLoadResult({
+            floorId: selectedFloorId,
+            rooms: [],
+            error: `A termek betöltése nem sikerült: ${err.message}`,
+          });
         }
       } finally {
         if (isMounted) setRoomsLoading(false);
@@ -141,7 +147,6 @@ export default function Dashboard({ user, onBookingCreated }) {
       setSelectedFloorId(availableFloors[0].id);
     } else {
       setSelectedFloorId(null);
-      setRooms([]);
     }
   };
 
@@ -183,7 +188,10 @@ export default function Dashboard({ user, onBookingCreated }) {
   );
   const selectedFloor = floors.find((f) => f.id === selectedFloorId);
 
-  const currentRooms = selectedFloorId ? rooms : [];
+  const currentRooms =
+    roomsLoadResult.floorId === selectedFloorId ? roomsLoadResult.rooms : [];
+  const roomsError =
+    roomsLoadResult.floorId === selectedFloorId ? roomsLoadResult.error : "";
 
   return (
     <div className="dashboard-container">

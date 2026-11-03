@@ -48,7 +48,11 @@ function App() {
   const handleLogin = async (email, password) => {
     const token = await request(
       "/User/login",
-      jsonOptions("POST", { Name: "", Email: email.trim(), Password: password }),
+      jsonOptions("POST", {
+        Name: "",
+        Email: email.trim(),
+        Password: password,
+      }),
     );
     if (typeof token !== "string" || !token) {
       throw new Error("A bejelentkezés nem adott vissza tokent.");

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { request } from "../api.js";
 
 function formatDate(value) {
@@ -6,46 +6,86 @@ function formatDate(value) {
   return Number.isNaN(date.getTime()) ? value : date.toLocaleString("hu-HU");
 }
 
+async function fetchBookings(userId) {
+  let result;
+  try {
+    result = await request(`/bookings/user/${encodeURIComponent(userId)}`);
+  } catch (error) {
+    if (error.status === 404) return [];
+    throw error;
+  }
+
+  if (!Array.isArray(result)) {
+    throw new Error("A foglalások API-válasza érvénytelen formátumú.");
+  }
+
+  const now = Date.now();
+  const currentBookings = [];
+  const previousBookings = [];
+  for (const booking of result) {
+    (new Date(booking.endTime).getTime() >= now
+      ? currentBookings
+      : previousBookings
+    ).push(booking);
+  }
+  currentBookings.sort(
+    (first, second) =>
+      new Date(first.startTime).getTime() -
+      new Date(second.startTime).getTime(),
+  );
+  previousBookings.sort(
+    (first, second) =>
+      new Date(second.startTime).getTime() -
+      new Date(first.startTime).getTime(),
+  );
+  return { currentBookings, previousBookings };
+}
+
 export default function BookingsPage({ user }) {
-  const [bookings, setBookings] = useState([]);
+  const [currentBookings, setCurrentBookings] = useState([]);
+  const [previousBookings, setPreviousBookings] = useState([]);
   const [roomNames, setRoomNames] = useState({});
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(Boolean(user?.id));
+  const [error, setError] = useState(
+    user?.id
+      ? ""
+      : "A felhasználói azonosító nem található a bejelentkezési tokenben.",
+  );
   const [notice, setNotice] = useState("");
 
-  const loadBookings = useCallback(async () => {
-    if (!user?.id) {
-      setError("A felhasználói azonosító nem található a bejelentkezési tokenben.");
-      setLoading(false);
-      return;
-    }
+  useEffect(() => {
+    const userId = user?.id;
+    if (!userId) return undefined;
 
-    setLoading(true);
-    setError("");
-    try {
-      const result = await request(
-        `/bookings/user/${encodeURIComponent(user.id)}`,
-      );
-      if (!Array.isArray(result)) {
-        throw new Error("A foglalások API-válasza érvénytelen formátumú.");
+    let active = true;
+    const load = async () => {
+      try {
+        const result = await fetchBookings(userId);
+        if (active) {
+          setCurrentBookings(result.currentBookings);
+          setPreviousBookings(result.previousBookings);
+          setError("");
+        }
+      } catch (loadError) {
+        if (active) {
+          setError(`A foglalások betöltése nem sikerült: ${loadError.message}`);
+        }
+      } finally {
+        if (active) setLoading(false);
       }
-      setBookings(result);
-    } catch (loadError) {
-      if (loadError.status === 404) {
-        setBookings([]);
-      } else {
-        setError(`A foglalások betöltése nem sikerült: ${loadError.message}`);
-      }
-    } finally {
-      setLoading(false);
-    }
+    };
+
+    load();
+    return () => {
+      active = false;
+    };
   }, [user?.id]);
 
   useEffect(() => {
-    loadBookings();
-  }, [loadBookings]);
+    if (currentBookings.length + previousBookings.length === 0) {
+      return undefined;
+    }
 
-  useEffect(() => {
     let active = true;
     const loadRoomNames = async () => {
       try {
@@ -56,9 +96,7 @@ export default function BookingsPage({ user }) {
         if (!active) return;
 
         const names = Object.fromEntries(
-          roomLists
-            .flat()
-            .map((room) => [room.id, room.name || room.id]),
+          roomLists.flat().map((room) => [room.id, room.name || room.id]),
         );
         setRoomNames(names);
       } catch (loadError) {
@@ -69,33 +107,32 @@ export default function BookingsPage({ user }) {
       }
     };
 
-    if (bookings.length > 0) loadRoomNames();
+    loadRoomNames();
     return () => {
       active = false;
     };
-  }, [bookings]);
+  }, [currentBookings.length, previousBookings.length]);
 
-  const { currentBookings, previousBookings } = useMemo(() => {
-    const now = Date.now();
-    const current = [];
-    const previous = [];
-    for (const booking of bookings) {
-      (new Date(booking.endTime).getTime() >= now ? current : previous).push(
-        booking,
+  const refreshBookings = async () => {
+    if (!user?.id) {
+      setError(
+        "A felhasználói azonosító nem található a bejelentkezési tokenben.",
       );
+      return;
     }
-    current.sort(
-      (first, second) =>
-        new Date(first.startTime).getTime() -
-        new Date(second.startTime).getTime(),
-    );
-    previous.sort(
-      (first, second) =>
-        new Date(second.startTime).getTime() -
-        new Date(first.startTime).getTime(),
-    );
-    return { currentBookings: current, previousBookings: previous };
-  }, [bookings]);
+
+    setLoading(true);
+    setError("");
+    try {
+      const result = await fetchBookings(user.id);
+      setCurrentBookings(result.currentBookings);
+      setPreviousBookings(result.previousBookings);
+    } catch (loadError) {
+      setError(`A foglalások betöltése nem sikerült: ${loadError.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const deleteBooking = async (booking) => {
     if (!window.confirm("Biztosan törlöd ezt a foglalást?")) return;
@@ -103,12 +140,11 @@ export default function BookingsPage({ user }) {
     setError("");
     setNotice("");
     try {
-      await request(
-        `/bookings?bookingId=${encodeURIComponent(booking.id)}`,
-        { method: "DELETE" },
-      );
+      await request(`/bookings?bookingId=${encodeURIComponent(booking.id)}`, {
+        method: "DELETE",
+      });
       setNotice("A foglalás törölve.");
-      await loadBookings();
+      await refreshBookings();
     } catch (deleteError) {
       setError(`A foglalás törlése nem sikerült: ${deleteError.message}`);
     }
@@ -173,7 +209,7 @@ export default function BookingsPage({ user }) {
         <button
           type="button"
           className="admin-button"
-          onClick={loadBookings}
+          onClick={refreshBookings}
           disabled={loading}
         >
           Frissítés
@@ -205,7 +241,9 @@ export default function BookingsPage({ user }) {
             <p className="admin-eyebrow">ELŐZMÉNYEK</p>
             <h2>Korábbi foglalások</h2>
           </div>
-          <span className="admin-count">{previousBookings.length} foglalás</span>
+          <span className="admin-count">
+            {previousBookings.length} foglalás
+          </span>
         </div>
         {renderBookings(previousBookings)}
       </section>

@@ -3,8 +3,7 @@ const API_BASE_URL =
 const TOKEN_STORAGE_KEY = "kulcs-rendszer-token";
 const NAME_IDENTIFIER_CLAIM =
   "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier";
-const NAME_CLAIM =
-  "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name";
+const NAME_CLAIM = "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name";
 const EMAIL_CLAIM =
   "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress";
 const ROLE_CLAIM =
@@ -22,10 +21,7 @@ function getErrorMessage(result) {
     ? new DOMParser().parseFromString(rawMessage, "text/html").body.textContent
     : rawMessage;
   const withoutStack = (message || rawMessage)
-    .replace(
-      /\s+at\s+(?:[\w.$`<>]+\.)+[\w.$`<>]+\s*\([\s\S]*$/i,
-      "",
-    )
+    .replace(/\s+at\s+(?:[\w.$`<>]+\.)+[\w.$`<>]+\s*\([\s\S]*$/i, "")
     .trim();
 
   return withoutStack.replace(/^[\w.]+Exception:\s*/i, "").trim();
@@ -75,7 +71,8 @@ export async function request(path, options = {}) {
     });
     const message = getErrorMessage(result);
     const error = new Error(
-      message || `A kérés sikertelen (${response.status} ${response.statusText}).`,
+      message ||
+        `A kérés sikertelen (${response.status} ${response.statusText}).`,
     );
     error.status = response.status;
     throw error;
@@ -101,7 +98,10 @@ export function getUserFromToken(token) {
   let claims;
   try {
     const payload = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-    const paddedPayload = payload.padEnd(Math.ceil(payload.length / 4) * 4, "=");
+    const paddedPayload = payload.padEnd(
+      Math.ceil(payload.length / 4) * 4,
+      "=",
+    );
     const binaryPayload = atob(paddedPayload);
     const bytes = Uint8Array.from(binaryPayload, (character) =>
       character.charCodeAt(0),
