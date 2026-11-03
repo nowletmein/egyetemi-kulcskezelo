@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { getUserFromToken, jsonOptions, request } from "../api.js";
+import ErrorToast from "./errorToast.jsx";
 
 function getFloorDisplayName(floor) {
   if (!Number.isInteger(floor?.number)) return "Ismeretlen emelet";
@@ -37,6 +38,11 @@ function isNoRoleName(name) {
   ].includes(normalized);
 }
 
+function formatBookingDate(value) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleString("hu-HU");
+}
+
 export default function AdminPage() {
   const [section, setSection] = useState("master-data");
   const [buildings, setBuildings] = useState([]);
@@ -53,8 +59,9 @@ export default function AdminPage() {
   const [selectedRoomKey, setSelectedRoomKey] = useState(null);
   const [buildingForm, setBuildingForm] = useState(null);
   const [floorForm, setFloorForm] = useState(null);
+  const [roomForm, setRoomForm] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [roomsLoading, setRoomsLoading] = useState(false);
+  const [roomsLoading, setRoomsLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [roomError, setRoomError] = useState("");
@@ -69,6 +76,16 @@ export default function AdminPage() {
   const [selectedUser, setSelectedUser] = useState(null);
   const [userForm, setUserForm] = useState(null);
   const [roleIdInput, setRoleIdInput] = useState("");
+  const [bookingRooms, setBookingRooms] = useState([]);
+  const [bookingSearch, setBookingSearch] = useState("");
+  const [adminBookings, setAdminBookings] = useState([]);
+  const [bookingDirectoryLoading, setBookingDirectoryLoading] = useState(false);
+  const [adminBookingsLoading, setAdminBookingsLoading] = useState(false);
+  const [adminBookingsError, setAdminBookingsError] = useState("");
+  const [bookingRoomError, setBookingRoomError] = useState("");
+  const [adminBookingsNotice, setAdminBookingsNotice] = useState("");
+  const [bookingRefreshKey, setBookingRefreshKey] = useState(0);
+  const [deletingBookingId, setDeletingBookingId] = useState(null);
 
   const refreshStructure = async () => {
     const [buildingData, floorData] = await Promise.all([
@@ -93,6 +110,19 @@ export default function AdminPage() {
         ? currentFloorId
         : (availableFloors[0]?.id ?? null),
     );
+  };
+
+  const refreshRooms = async () => {
+    setRoomError("");
+    try {
+      const roomData = await request("/Room/getall");
+      setRooms(roomData);
+    } catch (loadError) {
+      setRooms([]);
+      setRoomError(`Nem sikerült betölteni a termeket: ${loadError.message}`);
+    } finally {
+      setRoomsLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -148,6 +178,81 @@ export default function AdminPage() {
   }, [section]);
 
   useEffect(() => {
+    if (section !== "bookings") return undefined;
+
+    let active = true;
+    const loadBookingData = async () => {
+      setBookingDirectoryLoading(true);
+      setAdminBookingsError("");
+      setBookingRoomError("");
+      const roomsResult = await Promise.allSettled([request("/Room/getall")]);
+
+      if (active) {
+        const roomResult = roomsResult[0];
+        if (
+          roomResult.status === "fulfilled" &&
+          Array.isArray(roomResult.value)
+        ) {
+          setBookingRooms(roomResult.value);
+        } else {
+          const message =
+            roomResult.status === "rejected"
+              ? roomResult.reason.message
+              : "A teremlista formátuma érvénytelen.";
+          setBookingRooms([]);
+          setBookingRoomError(`Nem sikerült betölteni a termeket: ${message}`);
+        }
+
+        setBookingDirectoryLoading(false);
+      }
+    };
+
+    loadBookingData();
+    return () => {
+      active = false;
+    };
+  }, [bookingRefreshKey, section]);
+
+  useEffect(() => {
+    if (section !== "bookings") return undefined;
+
+    let active = true;
+    const loadAllBookings = async () => {
+      setAdminBookingsLoading(true);
+      setAdminBookingsError("");
+      try {
+        const result = await request("/bookings/getall");
+        if (!Array.isArray(result)) {
+          throw new Error("A foglalások API-válasza érvénytelen formátumú.");
+        }
+        if (active) {
+          setAdminBookings(
+            [...result].sort(
+              (first, second) =>
+                new Date(first.startTime).getTime() -
+                new Date(second.startTime).getTime(),
+            ),
+          );
+        }
+      } catch (loadError) {
+        if (active) {
+          setAdminBookings([]);
+          setAdminBookingsError(
+            `Nem sikerült betölteni a foglalásokat: ${loadError.message}`,
+          );
+        }
+      } finally {
+        if (active) setAdminBookingsLoading(false);
+      }
+    };
+
+    loadAllBookings();
+    return () => {
+      active = false;
+    };
+  }, [bookingRefreshKey, section]);
+
+  useEffect(() => {
     let active = true;
 
     const loadStructure = async () => {
@@ -185,20 +290,13 @@ export default function AdminPage() {
 
   useEffect(() => {
     let active = true;
-
-    if (selectedFloorId === null) {
-      return () => {
-        active = false;
-      };
-    }
-
     const loadRooms = async () => {
-      setRoomsLoading(true);
-      setRooms([]);
-      setRoomError("");
       try {
-        const roomData = await request(`/Floor/${selectedFloorId}/rooms`);
-        if (active) setRooms(roomData);
+        const roomData = await request("/Room/getall");
+        if (active) {
+          setRooms(roomData);
+          setRoomError("");
+        }
       } catch (loadError) {
         if (active) {
           setRooms([]);
@@ -215,7 +313,7 @@ export default function AdminPage() {
     return () => {
       active = false;
     };
-  }, [selectedFloorId]);
+  }, []);
 
   const runMutation = async (operation, successMessage) => {
     setSaving(true);
@@ -223,7 +321,7 @@ export default function AdminPage() {
     setNotice("");
     try {
       await operation();
-      await refreshStructure();
+      await Promise.all([refreshStructure(), refreshRooms()]);
       setNotice(successMessage);
       return true;
     } catch (mutationError) {
@@ -253,6 +351,21 @@ export default function AdminPage() {
     );
   });
   const selectedRole = roles.find((role) => role.id === selectedUser?.roleId);
+  const roomById = Object.fromEntries(
+    bookingRooms.map((room) => [room.id, room]),
+  );
+  const normalizedBookingSearch = bookingSearch.trim().toLocaleLowerCase("hu");
+  const matchingAdminBookings = adminBookings.filter((booking) => {
+    const room = roomById[booking.roomId];
+    return (
+      !normalizedBookingSearch ||
+      booking.roomId
+        .toLocaleLowerCase("hu")
+        .includes(normalizedBookingSearch) ||
+      room?.name.toLocaleLowerCase("hu").includes(normalizedBookingSearch) ||
+      room?.building.toLocaleLowerCase("hu").includes(normalizedBookingSearch)
+    );
+  });
   const selectedUserHasNoRole =
     selectedUser?.roleId == null || isNoRoleName(selectedRole?.name);
   const buildingFloors = floors.filter(
@@ -277,7 +390,10 @@ export default function AdminPage() {
       building.buildingCode.toLocaleLowerCase("hu").includes(query)
     );
   });
-  const visibleRooms = selectedFloorId === null ? [] : rooms;
+  const visibleRooms =
+    selectedFloorId === null
+      ? []
+      : rooms.filter((room) => room.floorId === selectedFloorId);
   const roomQuery = roomSearch.trim().toLocaleLowerCase("hu");
   const matchingRooms = visibleRooms.filter(
     (room) =>
@@ -285,15 +401,10 @@ export default function AdminPage() {
       room.name.toLocaleLowerCase("hu").includes(roomQuery) ||
       room.id.toLocaleLowerCase("hu").includes(roomQuery) ||
       room.equipment.toLocaleLowerCase("hu").includes(roomQuery) ||
-      selectedBuilding?.buildingName
-        .toLocaleLowerCase("hu")
-        .includes(roomQuery) ||
-      selectedBuilding?.buildingCode
-        .toLocaleLowerCase("hu")
-        .includes(roomQuery),
+      room.building.toLocaleLowerCase("hu").includes(roomQuery),
   );
-  const visibleRoomError = selectedFloorId === null ? "" : roomError;
-  const roomIsLoading = selectedFloorId !== null && roomsLoading;
+  const visibleRoomError = roomError;
+  const roomIsLoading = roomsLoading;
 
   const saveBuilding = async (event) => {
     event.preventDefault();
@@ -373,6 +484,121 @@ export default function AdminPage() {
     if (deleted) setFloorForm(null);
   };
 
+  const saveRoom = async (event) => {
+    event.preventDefault();
+    const isEditing = roomForm.isEditing;
+    const payload = {
+      floorId: Number(roomForm.floorId),
+      name: roomForm.name.trim(),
+      capacity: Number(roomForm.capacity),
+      equipment: roomForm.equipment.trim(),
+    };
+
+    if (
+      (!isEditing && !roomForm.id.trim()) ||
+      !Number.isInteger(payload.floorId) ||
+      payload.floorId < 1 ||
+      !payload.name ||
+      !Number.isInteger(payload.capacity) ||
+      payload.capacity < 0
+    ) {
+      setError(
+        "Adj meg érvényes teremazonosítót, emeletet, nevet és férőhelyet.",
+      );
+      return;
+    }
+
+    const saved = await runMutation(
+      () =>
+        request(
+          isEditing
+            ? `/Room/update/${encodeURIComponent(roomForm.id)}`
+            : "/Room/create",
+          jsonOptions(isEditing ? "PUT" : "POST", {
+            ...(isEditing ? {} : { id: roomForm.id.trim() }),
+            ...payload,
+          }),
+        ),
+      isEditing ? "A terem adatai frissültek." : "A terem létrejött.",
+    );
+    if (saved) {
+      setRoomForm(null);
+      setRoomSearchResults(null);
+      const targetFloor = floors.find((floor) => floor.id === payload.floorId);
+      if (targetFloor) setSelectedBuildingId(targetFloor.buildingId);
+      setSelectedFloorId(payload.floorId);
+      setSelectedRoomKey(
+        `${payload.floorId}-${isEditing ? roomForm.id : roomForm.id.trim()}`,
+      );
+    }
+  };
+
+  const editRoom = (room) => {
+    setSelectedFloorId(room.floorId);
+    const roomFloor = floors.find((floor) => floor.id === room.floorId);
+    if (roomFloor) setSelectedBuildingId(roomFloor.buildingId);
+    setSelectedRoomKey(`${room.floorId}-${room.id}`);
+    setRoomForm({
+      id: room.id,
+      isEditing: true,
+      floorId: String(room.floorId),
+      name: room.name,
+      capacity: String(room.capacity),
+      equipment: room.equipment,
+    });
+    setError("");
+    setNotice("");
+  };
+
+  const deleteRoom = async (room) => {
+    if (!window.confirm(`Biztosan törlöd a(z) ${room.name} termet?`)) {
+      return;
+    }
+
+    const deleted = await runMutation(
+      () =>
+        request(`/Room/delete/${encodeURIComponent(room.id)}`, {
+          method: "DELETE",
+        }),
+      "A terem törlődött.",
+    );
+    if (deleted) {
+      setRoomForm(null);
+      setRoomSearchResults(null);
+      setSelectedRoomKey(null);
+    }
+  };
+
+  const deleteAdminBooking = async (booking) => {
+    if (
+      !window.confirm(
+        `Biztosan törlöd a(z) ${booking.userId}. felhasználó foglalását ` +
+          `(${booking.id})?`,
+      )
+    ) {
+      return;
+    }
+
+    setDeletingBookingId(booking.id);
+    setAdminBookingsError("");
+    setAdminBookingsNotice("");
+    try {
+      await request(`/bookings?bookingId=${encodeURIComponent(booking.id)}`, {
+        method: "DELETE",
+      });
+      setAdminBookings((currentBookings) =>
+        currentBookings.filter((item) => item.id !== booking.id),
+      );
+      setAdminBookingsNotice("A foglalás törölve.");
+    } catch (deleteError) {
+      setAdminBookingsError(
+        `A foglalás törlése nem sikerült: ${deleteError.message}`,
+      );
+    } finally {
+      setDeletingBookingId(null);
+    }
+  };
+
   const searchRooms = async (event) => {
     event.preventDefault();
     const query = roomSearch.trim().toLocaleLowerCase("hu");
@@ -385,24 +611,23 @@ export default function AdminPage() {
     setRoomSearchLoading(true);
     setRoomSearchError("");
     try {
-      const roomLists = await Promise.all(
-        floors.map((floor) =>
-          request(`/Floor/${floor.id}/rooms`).then((floorRooms) =>
-            floorRooms.map((room) => ({
-              ...room,
-              floorNumber: getFloorDisplayName(floor),
-            })),
-          ),
-        ),
-      );
-      const allRooms = roomLists.flat();
+      const allRooms = await request("/Room/getall");
       const results = allRooms.filter(
         (room) =>
           room.name.toLocaleLowerCase("hu").includes(query) ||
           room.id.toLocaleLowerCase("hu").includes(query) ||
-          room.building.toLocaleLowerCase("hu").includes(query),
+          room.building.toLocaleLowerCase("hu").includes(query) ||
+          room.equipment.toLocaleLowerCase("hu").includes(query),
       );
-      setRoomSearchResults(results);
+      setRooms(allRooms);
+      setRoomSearchResults(
+        results.map((room) => ({
+          ...room,
+          floorNumber: getFloorDisplayName(
+            floors.find((floor) => floor.id === room.floorId),
+          ),
+        })),
+      );
     } catch (searchError) {
       setRoomSearchResults(null);
       setRoomSearchError(`A teremkeresés nem sikerült: ${searchError.message}`);
@@ -659,6 +884,13 @@ export default function AdminPage() {
         </button>
         <button
           type="button"
+          className={section === "bookings" ? "active" : ""}
+          onClick={() => setSection("bookings")}
+        >
+          Foglalások
+        </button>
+        <button
+          type="button"
           className={section === "permissions" ? "active" : ""}
           onClick={() => setSection("permissions")}
         >
@@ -680,18 +912,7 @@ export default function AdminPage() {
         </button>
       </nav>
 
-      {error && (
-        <div className="admin-alert admin-alert-error" role="alert">
-          {error}
-          <button
-            type="button"
-            onClick={() => setError("")}
-            aria-label="Bezárás"
-          >
-            ×
-          </button>
-        </div>
-      )}
+      <ErrorToast message={error} onDismiss={() => setError("")} />
       {notice && (
         <div className="admin-alert admin-alert-success" role="status">
           {notice}
@@ -1032,16 +1253,151 @@ export default function AdminPage() {
                           : "Termek"}
                       </h3>
                     </div>
-                    <span className="admin-count">
-                      {roomIsLoading
-                        ? "Betöltés..."
-                        : `${visibleRooms.length} terem`}
-                    </span>
+                    <div className="admin-form-actions">
+                      <span className="admin-count">
+                        {roomIsLoading
+                          ? "Betöltés..."
+                          : `${visibleRooms.length} terem`}
+                      </span>
+                      <button
+                        type="button"
+                        className="admin-button admin-button-primary"
+                        onClick={() => {
+                          setRoomForm({
+                            id: "",
+                            isEditing: false,
+                            floorId: String(selectedFloorId ?? ""),
+                            name: "",
+                            capacity: "",
+                            equipment: "",
+                          });
+                          setError("");
+                        }}
+                        disabled={saving || floors.length === 0}
+                      >
+                        Új terem
+                      </button>
+                    </div>
                   </div>
-                  <p className="admin-note">
-                    A backend jelenleg csak a termek listázását támogatja; terem
-                    létrehozásához és szerkesztéséhez még nincs API.
-                  </p>
+                  {roomForm && (
+                    <form
+                      className="admin-form admin-form-inline"
+                      onSubmit={saveRoom}
+                    >
+                      <h3>
+                        {roomForm.isEditing
+                          ? "Terem szerkesztése"
+                          : "Terem hozzáadása"}
+                      </h3>
+                      {!roomForm.isEditing && (
+                        <label>
+                          Teremazonosító
+                          <input
+                            required
+                            maxLength={450}
+                            value={roomForm.id}
+                            onChange={(event) =>
+                              setRoomForm({
+                                ...roomForm,
+                                id: event.target.value,
+                              })
+                            }
+                            placeholder="Pl. A101"
+                          />
+                        </label>
+                      )}
+                      <label>
+                        Emelet
+                        <select
+                          required
+                          value={roomForm.floorId}
+                          onChange={(event) =>
+                            setRoomForm({
+                              ...roomForm,
+                              floorId: event.target.value,
+                            })
+                          }
+                        >
+                          <option value="" disabled>
+                            Válassz emeletet
+                          </option>
+                          {floors.map((floor) => {
+                            const building = buildings.find(
+                              (item) => item.id === floor.buildingId,
+                            );
+                            return (
+                              <option key={floor.id} value={floor.id}>
+                                {building?.buildingName ?? "Ismeretlen épület"}{" "}
+                                — {getFloorDisplayName(floor)}
+                              </option>
+                            );
+                          })}
+                        </select>
+                      </label>
+                      <label>
+                        Terem neve
+                        <input
+                          required
+                          maxLength={100}
+                          value={roomForm.name}
+                          onChange={(event) =>
+                            setRoomForm({
+                              ...roomForm,
+                              name: event.target.value,
+                            })
+                          }
+                          placeholder="Pl. 101-es terem"
+                        />
+                      </label>
+                      <label>
+                        Férőhely
+                        <input
+                          required
+                          type="number"
+                          min="0"
+                          step="1"
+                          value={roomForm.capacity}
+                          onChange={(event) =>
+                            setRoomForm({
+                              ...roomForm,
+                              capacity: event.target.value,
+                            })
+                          }
+                          placeholder="Pl. 30"
+                        />
+                      </label>
+                      <label>
+                        Felszerelés
+                        <input
+                          value={roomForm.equipment}
+                          onChange={(event) =>
+                            setRoomForm({
+                              ...roomForm,
+                              equipment: event.target.value,
+                            })
+                          }
+                          placeholder="Pl. projektor, tábla"
+                        />
+                      </label>
+                      <div className="admin-form-actions">
+                        <button
+                          type="button"
+                          className="admin-button admin-button-quiet"
+                          onClick={() => setRoomForm(null)}
+                          disabled={saving}
+                        >
+                          Mégse
+                        </button>
+                        <button
+                          type="submit"
+                          className="admin-button admin-button-primary"
+                          disabled={saving}
+                        >
+                          {saving ? "Mentés..." : "Mentés"}
+                        </button>
+                      </div>
+                    </form>
+                  )}
                   <form className="admin-search-form" onSubmit={searchRooms}>
                     <label className="admin-search-field">
                       <span>
@@ -1083,9 +1439,10 @@ export default function AdminPage() {
                     )}
                   </form>
                   {roomSearchError && (
-                    <p className="admin-inline-error" role="alert">
-                      {roomSearchError}
-                    </p>
+                    <ErrorToast
+                      message={roomSearchError}
+                      onDismiss={() => setRoomSearchError("")}
+                    />
                   )}
                   {roomSearchResults !== null && (
                     <div className="admin-search-results" aria-live="polite">
@@ -1099,7 +1456,7 @@ export default function AdminPage() {
                       ) : (
                         roomSearchResults.map((room) => (
                           <article
-                            className={`admin-room-record ${
+                            className={`admin-room-record admin-record ${
                               selectedRoomKey === `${room.floorId}-${room.id}`
                                 ? "selected"
                                 : ""
@@ -1125,24 +1482,50 @@ export default function AdminPage() {
                                 );
                               }}
                             >
+                              <span
+                                className="admin-record-icon"
+                                aria-hidden="true"
+                              >
+                                {room.id.slice(0, 2)}
+                              </span>
                               <span className="admin-room-name">
                                 <strong>{room.name}</strong>
                                 <small>{room.id}</small>
                               </span>
                               <span>{room.capacity} férőhely</span>
-                              <small>
-                                {room.building}, {room.floorNumber}
-                              </small>
+                              <span>
+                                <small>
+                                  {room.building}, {room.floorNumber}
+                                </small>
+                              </span>
                             </button>
+                            <div className="admin-record-actions">
+                              <button
+                                type="button"
+                                onClick={() => editRoom(room)}
+                                disabled={saving}
+                              >
+                                Szerkesztés
+                              </button>
+                              <button
+                                type="button"
+                                className="admin-danger-link"
+                                onClick={() => deleteRoom(room)}
+                                disabled={saving}
+                              >
+                                Törlés
+                              </button>
+                            </div>
                           </article>
                         ))
                       )}
                     </div>
                   )}
                   {visibleRoomError && (
-                    <p className="admin-inline-error" role="alert">
-                      {visibleRoomError}
-                    </p>
+                    <ErrorToast
+                      message={visibleRoomError}
+                      onDismiss={() => setRoomError("")}
+                    />
                   )}
                   {!roomIsLoading &&
                     !visibleRoomError &&
@@ -1158,7 +1541,7 @@ export default function AdminPage() {
                   <div className="admin-room-list">
                     {matchingRooms.map((room) => (
                       <article
-                        className={`admin-room-record ${
+                        className={`admin-room-record admin-record ${
                           selectedRoomKey === `${selectedFloorId}-${room.id}`
                             ? "selected"
                             : ""
@@ -1175,15 +1558,40 @@ export default function AdminPage() {
                             setSelectedRoomKey(`${selectedFloorId}-${room.id}`)
                           }
                         >
+                          <span
+                            className="admin-record-icon"
+                            aria-hidden="true"
+                          >
+                            {room.id.slice(0, 2)}
+                          </span>
                           <span className="admin-room-name">
                             <strong>{room.name}</strong>
                             <small>{room.id}</small>
                           </span>
                           <span>{room.capacity} férőhely</span>
-                          <small>
-                            {room.equipment || "Nincs megadott felszerelés"}
-                          </small>
+                          <span>
+                            <small>
+                              {room.equipment || "Nincs megadott felszerelés"}
+                            </small>
+                          </span>
                         </button>
+                        <div className="admin-record-actions">
+                          <button
+                            type="button"
+                            onClick={() => editRoom(room)}
+                            disabled={saving}
+                          >
+                            Szerkesztés
+                          </button>
+                          <button
+                            type="button"
+                            className="admin-danger-link"
+                            onClick={() => deleteRoom(room)}
+                            disabled={saving}
+                          >
+                            Törlés
+                          </button>
+                        </div>
                       </article>
                     ))}
                   </div>
@@ -1192,6 +1600,131 @@ export default function AdminPage() {
             )}
           </section>
         </div>
+      )}
+
+      {section === "bookings" && (
+        <section className="admin-panel admin-bookings-panel">
+          <div className="admin-panel-heading">
+            <div>
+              <p className="admin-eyebrow">FOGLALÁSKÉRÉSEK</p>
+              <h2>Foglalások kezelése</h2>
+            </div>
+            <button
+              type="button"
+              className="admin-button admin-button-quiet"
+              onClick={() => {
+                setAdminBookings([]);
+                setAdminBookingsError("");
+                setAdminBookingsNotice("");
+                setBookingRefreshKey((current) => current + 1);
+              }}
+              disabled={bookingDirectoryLoading || adminBookingsLoading}
+            >
+              {bookingDirectoryLoading || adminBookingsLoading
+                ? "Frissítés..."
+                : "Frissítés"}
+            </button>
+          </div>
+
+          <p className="admin-note">
+            Minden foglalás megjelenik. Teremnév, teremazonosító vagy épület
+            alapján kereshetsz. A jelenlegi API törlést támogat, jóváhagyást
+            vagy státuszmódosítást nem.
+          </p>
+
+          {adminBookingsError && (
+            <ErrorToast
+              message={adminBookingsError}
+              onDismiss={() => setAdminBookingsError("")}
+            />
+          )}
+          {bookingRoomError && (
+            <ErrorToast
+              message={`${bookingRoomError} A foglalások ettől még megtekinthetők teremazonosítóval.`}
+              onDismiss={() => setBookingRoomError("")}
+            />
+          )}
+          {adminBookingsNotice && (
+            <p className="booking-success" role="status">
+              {adminBookingsNotice}
+            </p>
+          )}
+
+          <label className="admin-search-field admin-booking-search">
+            <span>Foglalások keresése terem szerint</span>
+            <input
+              type="search"
+              value={bookingSearch}
+              onChange={(event) => setBookingSearch(event.target.value)}
+              placeholder="Terem neve, azonosítója vagy épülete"
+            />
+          </label>
+
+          <p className="admin-count" role="status">
+            {adminBookingsLoading
+              ? "Foglalások betöltése..."
+              : `${matchingAdminBookings.length} / ${adminBookings.length} foglalás`}
+          </p>
+
+          {!bookingDirectoryLoading &&
+            !adminBookingsLoading &&
+            matchingAdminBookings.length === 0 &&
+            !adminBookingsError && (
+              <p className="admin-empty">
+                {adminBookings.length === 0
+                  ? "Nincs megjeleníthető foglalás."
+                  : "Nincs a teremkeresésnek megfelelő foglalás."}
+              </p>
+            )}
+
+          {matchingAdminBookings.length > 0 && (
+            <div className="booking-list">
+              {matchingAdminBookings.map((booking) => {
+                const room = roomById[booking.roomId];
+                return (
+                  <article className="booking-item" key={booking.id}>
+                    <div className="booking-item-heading">
+                      <h3>
+                        {room?.name || `Terem ${booking.roomId}`}{" "}
+                        <small>#{booking.id}</small>
+                      </h3>
+                      <span>{booking.status}</span>
+                    </div>
+                    <p className="admin-booking-owner">
+                      Felhasználó #{booking.userId}
+                    </p>
+                    <dl>
+                      <div>
+                        <dt>Kezdés</dt>
+                        <dd>{formatBookingDate(booking.startTime)}</dd>
+                      </div>
+                      <div>
+                        <dt>Befejezés</dt>
+                        <dd>{formatBookingDate(booking.endTime)}</dd>
+                      </div>
+                      {booking.specialRequest && (
+                        <div>
+                          <dt>Megjegyzés</dt>
+                          <dd>{booking.specialRequest}</dd>
+                        </div>
+                      )}
+                    </dl>
+                    <button
+                      type="button"
+                      className="admin-button admin-button-danger"
+                      onClick={() => deleteAdminBooking(booking)}
+                      disabled={deletingBookingId === booking.id}
+                    >
+                      {deletingBookingId === booking.id
+                        ? "Törlés..."
+                        : "Foglalás törlése"}
+                    </button>
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </section>
       )}
 
       {section === "permissions" && (
@@ -1369,9 +1902,10 @@ export default function AdminPage() {
           )}
 
           {rolesError && (
-            <p className="admin-inline-error" role="alert">
-              {rolesError}
-            </p>
+            <ErrorToast
+              message={rolesError}
+              onDismiss={() => setRolesError("")}
+            />
           )}
 
           <form

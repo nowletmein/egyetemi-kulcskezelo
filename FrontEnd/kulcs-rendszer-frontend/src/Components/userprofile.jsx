@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { jsonOptions, request } from "../api.js";
+import ErrorToast from "./errorToast.jsx";
 
 export default function UserProfile({ user, onUserUpdated }) {
   const [isEditingData, setIsEditingData] = useState(false);
@@ -86,6 +87,7 @@ export default function UserProfile({ user, onUserUpdated }) {
       <div className="profile-card">
         <div className="profile-header-bg"></div>
         <div className="profile-body">
+          <ErrorToast message={error} onDismiss={() => setError("")} />
           <div className="profile-avatar-large">
             {name
               .split(/\s+/)
@@ -98,11 +100,6 @@ export default function UserProfile({ user, onUserUpdated }) {
           <p className="profile-email">{email}</p>
 
           <div className="profile-sections">
-            {error && (
-              <p className="auth-error" role="alert">
-                {error}
-              </p>
-            )}
             {notice && (
               <p className="booking-success" role="status">
                 {notice}

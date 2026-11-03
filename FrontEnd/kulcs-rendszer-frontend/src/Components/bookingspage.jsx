@@ -1,9 +1,16 @@
 import { useEffect, useState } from "react";
 import { request } from "../api.js";
+import ErrorToast from "./errorToast.jsx";
 
 function formatDate(value) {
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? value : date.toLocaleString("hu-HU");
+}
+
+function getBookingStatusLabel(status) {
+  return status?.toLowerCase() === "pending"
+    ? "A kulcs még nem lett felvéve"
+    : status;
 }
 
 async function fetchBookings(userId) {
@@ -159,7 +166,7 @@ export default function BookingsPage({ user }) {
           <article className="booking-item" key={booking.id}>
             <div className="booking-item-heading">
               <h3>{roomNames[booking.roomId] || `Terem ${booking.roomId}`}</h3>
-              <span>{booking.status}</span>
+              <span>{getBookingStatusLabel(booking.status)}</span>
             </div>
             <dl>
               <div>
@@ -199,6 +206,7 @@ export default function BookingsPage({ user }) {
 
   return (
     <main className="admin-page bookings-page">
+      <ErrorToast message={error} onDismiss={() => setError("")} />
       <header className="admin-heading">
         <div>
           <h1>Lefoglalt termek</h1>
@@ -215,11 +223,6 @@ export default function BookingsPage({ user }) {
           Frissítés
         </button>
       </header>
-      {error && (
-        <div className="admin-alert admin-alert-error" role="alert">
-          {error}
-        </div>
-      )}
       {notice && (
         <div className="admin-alert admin-alert-success" role="status">
           {notice}

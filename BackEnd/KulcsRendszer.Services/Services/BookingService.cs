@@ -11,6 +11,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace KulcsRendszer.Services.Services {
     public interface IBookingService {
+        Task<IReadOnlyList<BookingDto>> GetAllBookingsAsync(
+            CancellationToken cancellationToken);
+
         Task<IReadOnlyList<BookingDto>> GetUserBookingsAsync(
             int userId,
             CancellationToken cancellationToken);
@@ -33,6 +36,23 @@ namespace KulcsRendszer.Services.Services {
 
         public BookingService(KulcsRendszerDbContext context) {
             _context = context;
+        }
+
+        public async Task<IReadOnlyList<BookingDto>> GetAllBookingsAsync(
+            CancellationToken cancellationToken) {
+            return await _context.Bookings
+                .AsNoTracking()
+                .OrderBy(booking => booking.StartTime)
+                .Select(booking => new BookingDto {
+                    Id = booking.Id,
+                    UserId = booking.UserId,
+                    RoomId = booking.RoomId,
+                    StartTime = booking.StartTime,
+                    EndTime = booking.EndTime,
+                    Status = booking.Status,
+                    SpecialRequest = booking.SpecialRequest
+                })
+                .ToListAsync(cancellationToken);
         }
 
         public async Task<IReadOnlyList<BookingDto>> GetUserBookingsAsync(

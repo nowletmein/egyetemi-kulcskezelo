@@ -225,61 +225,87 @@ erDiagram
 
 ## 6. API dokumentáció
 
-**Health**
+Az API alap URL-je fejleszteskor altalaban `http://localhost:5000`. Az alabbi utvonalak erre az alapra ertendok. A kapcsos zarojelben szereplo ertekeket valos azonositokra kell cserelni.
 
-- GET /api/health : A rendszer es az adatbazis-kapcsolat valos ideju allapotanak lekerdezese.
+### Health es gyoker vegpont
 
-**KulcsRendszer.API**
+| Method | Utvonal       | Leiras                                                            | Jogosultsag |
+| ------ | ------------- | ----------------------------------------------------------------- | ----------- |
+| GET    | `/`           | Egyszeru uzenettel jelzi, hogy az alkalmazas elindult.            | Nyilvanos   |
+| GET    | `/api/health` | Az alkalmazas es az adatbazis health check allapotat adja vissza. | Nyilvanos   |
 
-- GET / : Alapertelmezett gyoker vegpont az API futasanak es elerhetosegenek ellenorzesere.
+**Kodbazis-megjegyzes:** a `Program.cs` a `/api/health` utvonalra health check middleware-t is regisztral, mikozben a `HealthController` `[Route("api/[controller]")]` es `[HttpGet]` attributumai ugyanoda, `/api/Health` utvonalra oldodnak fel. Az utvonalak kis- es nagybetu-fuggetlenek, igy jelenleg ket GET endpoint van ugyanarra az utvonalra regisztralva; ezt erdemes a backendben egyetlen megoldasra egyszerusiteni.
 
-**User**
+### User
 
-- GET /api/User/{id} : A tokenhez tartozo felhasznalo alapveto adatainak lekerdezese; az URL-ben kapott id-t a vegpont jelenleg nem hasznalja.
-- GET /api/User : Az osszes felhasznalo listajanak lekerdezese.
-- GET /api/User/info/{id} : Egy adott azonositoju felhasznalo reszletes informacioinak lekerdezese.
-- GET /api/User/roles : Az osszes szerepkor listajanak lekerdezese.
-- DELETE /api/User/{id} : Felhasznalo torlese a rendszerbol id alapjan.
-- POST /api/User/create : Uj felhasznalo regisztracioja / letrehozasa a rendszerben.
-- POST /api/User/login : Bejelentkezes e-mail-cimmel es jelszoval.
-- PUT /api/User/update : A bejelentkezett felhasznalo adatainak modositasa.
-- POST /api/User/change-password : A bejelentkezett felhasznalo jelszavanak biztonsagos megvaltoztatasa.
-- POST /api/User/role/{userId} : Szerepkor hozzarendelese egy adott azonositoju felhasznalohoz.
-- POST /api/User/role : Uj szerepkor hozzaadasa / letrehozasa a rendszerben.
-- DELETE /api/User/role/{Id} : Szerepkor torlese a rendszerbol id alapjan.
-- DELETE /api/User/role/remove/{Id} : Szerepkor eltavolitasa egy felhasznalotol id alapjan.
+| Method | Utvonal                      | Leiras                                                                                                                           | Jogosultsag    |
+| ------ | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | -------------- |
+| GET    | `/api/User/{id}`             | A token alapjan bejelentkezett felhasznalo adatait adja vissza. Az `{id}` route-parametert a jelenlegi controller nem hasznalja. | Bejelentkezett |
+| GET    | `/api/User`                  | Az osszes felhasznalot listazza.                                                                                                 | Admin          |
+| GET    | `/api/User/info/{id}`        | Egy felhasznalo reszletes adatait adja vissza.                                                                                   | Admin          |
+| GET    | `/api/User/roles`            | A szerepkorok listaja.                                                                                                           | Admin          |
+| POST   | `/api/User/create`           | Felhasznalo regisztralasa. JSON: `Name`, `Email`, `Password`; JWT tokent ad vissza.                                              | Nyilvanos      |
+| POST   | `/api/User/login`            | Bejelentkezes. JSON: `Email`, `Password`; JWT tokent ad vissza.                                                                  | Nyilvanos      |
+| PUT    | `/api/User/update`           | A bejelentkezett felhasznalo adatainak modositasa. JSON: `Name`, `Email`, `Password`.                                            | Bejelentkezett |
+| POST   | `/api/User/change-password`  | Jelszocsere. JSON: `OldPassword`, `NewPassword`, `ConfirmPassword`.                                                              | Bejelentkezett |
+| DELETE | `/api/User/{id}`             | Felhasznalo torlese.                                                                                                             | Admin          |
+| POST   | `/api/User/role/{userId}`    | A body-ban kapott egesz role ID-t hozzarendeli a felhasznalohoz.                                                                 | Admin          |
+| POST   | `/api/User/role`             | Uj szerepkor letrehozasa. JSON: `Name`.                                                                                          | Admin          |
+| DELETE | `/api/User/role/{id}`        | Szerepkor torlese azonosito alapjan.                                                                                             | Admin          |
+| DELETE | `/api/User/role/remove/{id}` | Az `{id}` felhasznalorol eltavolitja a szerepkort.                                                                               | Admin          |
 
-**Floor**
+### Building
 
-- GET /api/Floor/getall : Az osszes emelet listajanak lekerdezese a rendszerbol.
-- GET /api/Floor/get/{id} : Egy adott azonositoju emelet alapadatainak lekerdezese.
-- GET /api/Floor/info/{id} : Egy adott azonositoju emelet reszletes informacioinak lekerdezese.
-- GET /api/Floor/{floorId}/rooms : Egy adott emelethez tartozo termek listajanak es azok tulajdonsagainak lekerdezese.
-- POST /api/Floor/create : Uj emelet letrehozasa a rendszerben.
-- PUT /api/Floor/update/{id} : Meglevo emelet adatainak modositasa id alapjan.
-- DELETE /api/Floor/delete/{id} : Emelet torlese a rendszerbol id alapjan.
+| Method | Utvonal                     | Leiras                                                    | Jogosultsag    |
+| ------ | --------------------------- | --------------------------------------------------------- | -------------- |
+| GET    | `/api/Building/getall`      | Az osszes epulettel kapcsolatos adatot visszaadja.        | Bejelentkezett |
+| GET    | `/api/Building/get/{id}`    | Egy epulet alapadatai.                                    | Bejelentkezett |
+| GET    | `/api/Building/info/{id}`   | Egy epulet reszletes adatai.                              | Bejelentkezett |
+| POST   | `/api/Building/create`      | Epulet letrehozasa. JSON: `BuildingCode`, `BuildingName`. | Admin          |
+| PUT    | `/api/Building/update/{id}` | Epulet modositasa. JSON: `BuildingCode`, `BuildingName`.  | Admin          |
+| DELETE | `/api/Building/delete/{id}` | Epulet torlese.                                           | Admin          |
 
-**Building**
+### Floor
 
-- GET /api/Building/getall : Az epuletek teljes listajanak lekerdezese a rendszerbol.
-- GET /api/Building/get/{id} : Egy adott azonositoju epulet alapadatainak lekerdezese.
-- GET /api/Building/info/{id} : Egy adott azonositoju epulet reszletes informacioinak lekerdezese.
-- POST /api/Building/create : Uj epulet letrehozasa a rendszerben.
-- PUT /api/Building/update/{id} : Meglevo epulet adatainak modositasa id alapjan.
-- DELETE /api/Building/delete/{id} : Epulet torlese a rendszerbol id alapjan.
+| Method | Utvonal                      | Leiras                                            | Jogosultsag    |
+| ------ | ---------------------------- | ------------------------------------------------- | -------------- |
+| GET    | `/api/Floor/getall`          | Az osszes emeletet listazza.                      | Bejelentkezett |
+| GET    | `/api/Floor/get/{id}`        | Egy emelet alapadatai.                            | Bejelentkezett |
+| GET    | `/api/Floor/info/{id}`       | Egy emelet reszletes adatai.                      | Bejelentkezett |
+| GET    | `/api/Floor/{floorId}/rooms` | Az adott emelet termeit listazza.                 | Bejelentkezett |
+| POST   | `/api/Floor/create`          | Emelet letrehozasa. JSON: `Number`, `BuildingId`. | Admin          |
+| PUT    | `/api/Floor/update/{id}`     | Emelet modositasa. JSON: `Number`, `BuildingId`.  | Admin          |
+| DELETE | `/api/Floor/delete/{id}`     | Emelet torlese.                                   | Admin          |
 
-**Booking**
+### Room
 
-- GET /api/bookings/user/{userId} : Egy adott felhasznalo foglalasainak lekerdezese.
-- POST /api/bookings : Uj foglalas letrehozasa.
-- DELETE /api/bookings?bookingId={bookingId} : Foglalas torlese id alapjan.
+| Method | Utvonal                 | Leiras                                                                     | Jogosultsag    |
+| ------ | ----------------------- | -------------------------------------------------------------------------- | -------------- |
+| GET    | `/api/Room/getall`      | Az osszes terem listaja.                                                   | Bejelentkezett |
+| GET    | `/api/Room/get/{id}`    | Egy terem adatai.                                                          | Bejelentkezett |
+| GET    | `/api/Room/info/{id}`   | Egy terem reszletes adatai.                                                | Bejelentkezett |
+| POST   | `/api/Room/create`      | Terem letrehozasa. JSON: `Id`, `FloorId`, `Name`, `Capacity`, `Equipment`. | Admin          |
+| PUT    | `/api/Room/update/{id}` | Terem modositasa. JSON: `FloorId`, `Name`, `Capacity`, `Equipment`.        | Admin          |
+| DELETE | `/api/Room/delete/{id}` | Terem torlese.                                                             | Admin          |
+
+### Booking
+
+| Method | Utvonal                               | Leiras                                                                                    | Jogosultsag                                                                           |
+| ------ | ------------------------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| GET    | `/api/bookings/getall`                | Az osszes foglalast listazza.                                                             | Admin                                                                                 |
+| GET    | `/api/bookings/user/{userId}`         | Egy felhasznalo foglalasait listazza.                                                     | Bejelentkezett felhasznalo csak sajat ID-val; Admin barmelyik felhasznaloet lekerheti |
+| POST   | `/api/bookings`                       | Foglalas letrehozasa. JSON: `UserId`, `RoomId`, `StartTime`, `EndTime`, `SpecialRequest`. | Oktato vagy szerepkor nelkuli felhasznalo, csak sajat `UserId` ertekkel               |
+| DELETE | `/api/bookings?bookingId={bookingId}` | Foglalas torlese azonosito alapjan.                                                       | A tulajdonos vagy Admin                                                               |
 
 **Hitelesites es jogosultsagok**
 
 - A `POST /api/User/create` es `POST /api/User/login` vegpontok nyilvanosak; mindketto JWT tokent ad vissza.
 - A tobbi User vegpont hitelesitest igenyel. A token fejlece: `Authorization: Bearer <JWT_TOKEN>`.
 - A `GET /api/User` es `GET /api/User/roles`, valamint az adminisztracios felhasznalo- es role-muveletek Admin szerepkort igenyelnek.
-- A Building es Floor lekerdezo vegpontjai bejelentkezest igenyelnek; letrehozasuk, modositasuk es torlesuk Admin szerepkorhoz kotott.
+- A Building, Floor es Room lekerdezo vegpontjai bejelentkezest igenyelnek; letrehozasuk, modositasuk es torlesuk Admin szerepkorhoz kotott.
 - Foglalast Oktato vagy szerepkor nelkuli, bejelentkezett felhasznalo hozhat letre, es csak sajat felhasznaloi azonositojaval. Mas kiosztott szerepkor nem hozhat letre foglalast.
 - A sajat felhasznaloi adatok lekerdezese es modositasa, valamint a jelszocsere minden bejelentkezett felhasznalo szamara elerheto, szerepkortol fuggetlenul.
-- Foglalasokat a bejelentkezett felhasznalo csak sajat maganak kerhet le vagy torolhet; Admin mas felhasznalo foglalasait is kezelheti.
+- A `GET /api/bookings/getall` Admin jogosultsagot igenyel. A felhasznalo a sajat foglalasait kerheti le es torolheti; Admin barmelyik felhasznalo foglalasait listazhatja es torolheti. Foglalas letrehozasanal az Admin sem lepheti at a POST vegpont Oktato/szerepkor nelkuli jogosultsagi es sajat-felhasznaloi-ID ellenorzeset.
+- A hitelesitett keresek fejlece: `Authorization: Bearer <JWT-token>`.
+
+**Jelenleg nem dokumentalhato, mert nincs hozza API controller:** a kulcsmozgatasok, hibajegyek, karbantartasok es mesterkulcs-jogosultsagok entitasaihoz nincs kulon HTTP vegpont a jelenlegi kodbazisban.
