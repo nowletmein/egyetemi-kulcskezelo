@@ -34,14 +34,14 @@ namespace KulcsRendszer.Services.Services {
                     Id = f.Id,
                     Number = f.Number,
                     BuildingId = f.BuildingId,
-                    Rooms = f.Rooms?.Select(r => new RoomResponse(
-                        r.Id,
-                        building.BuildingName,
-                        r.FloorId,
-                        r.Name,
-                        r.Capacity,
-                        r.Equipment
-                    )).ToList() ?? new List<RoomResponse>()
+                    Rooms = f.Rooms?.Select(r => new RoomResponse {
+                        Id = r.Id,
+                        Building = building.BuildingName,
+                        FloorId = r.FloorId,
+                        Name = r.Name,
+                        Capacity = r.Capacity,
+                        Equipment = r.Equipment
+                    }).ToList() ?? new List<RoomResponse>()
                 }).ToList() ?? new List<FloorDto>()
             };
         }

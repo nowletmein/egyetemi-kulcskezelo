@@ -25,6 +25,7 @@ namespace KulcsRendszer.API.Middleware {
             context.Response.StatusCode = exception switch {
                 INotFoundException => StatusCodes.Status404NotFound,
                 IAlreadyExistsException => StatusCodes.Status409Conflict,
+                ArgumentException => StatusCodes.Status400BadRequest,
                 _ => StatusCodes.Status500InternalServerError
             };
 

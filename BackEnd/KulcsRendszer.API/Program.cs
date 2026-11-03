@@ -51,6 +51,7 @@ namespace KulcsRendszer.API {
             //controllers
             builder.Services.AddScoped<IUserService, UserService>();
             builder.Services.AddScoped<IRoomService, RoomService>();
+            builder.Services.AddScoped<IBookingService, BookingService>();
             builder.Services.AddScoped<IBuildingService, BuildingService>();
             builder.Services.AddScoped<IFloorService, FloorService>();
             //database service
@@ -66,6 +67,7 @@ namespace KulcsRendszer.API {
 
 
             var app = builder.Build();
+
 
             // After app building:
             // Enable middleware to serve generated Swagger as a JSON endpoint and the Swagger UI
