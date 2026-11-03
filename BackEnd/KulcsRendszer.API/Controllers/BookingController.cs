@@ -15,6 +15,18 @@ namespace KulcsRendszer.API.Controllers {
             _bookingService = bookingService;
         }
 
+        [HttpGet]
+        [ProducesResponseType(
+            typeof(IReadOnlyList<BookingDto>),
+            StatusCodes.Status200OK)]
+        public async Task<ActionResult<IReadOnlyList<BookingDto>>> GetAllBookings(
+            CancellationToken cancellationToken) {
+            var bookings = await _bookingService.GetAllBookingsAsync(
+                cancellationToken);
+
+            return Ok(bookings);
+        }
+
         [HttpGet("user/{userId:int}")]
         [ProducesResponseType(
             typeof(IReadOnlyList<BookingDto>),
