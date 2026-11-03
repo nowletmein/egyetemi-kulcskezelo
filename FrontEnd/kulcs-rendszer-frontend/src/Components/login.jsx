@@ -1,4 +1,5 @@
 import { useState } from "react";
+import ErrorToast from "./errorToast.jsx";
 
 export default function Login({ onLogin, onNavigateRegister }) {
   const [email, setEmail] = useState("");
@@ -22,6 +23,7 @@ export default function Login({ onLogin, onNavigateRegister }) {
 
   return (
     <div className="auth-card">
+      <ErrorToast message={error} onDismiss={() => setError("")} />
       <div className="auth-header">
         <h2>Jelentkezzen be az egyetemi e-mail címével</h2>
       </div>
@@ -51,12 +53,6 @@ export default function Login({ onLogin, onNavigateRegister }) {
             required
           />
         </div>
-
-        {error && (
-          <p className="auth-error" role="alert">
-            {error}
-          </p>
-        )}
 
         <button
           type="submit"

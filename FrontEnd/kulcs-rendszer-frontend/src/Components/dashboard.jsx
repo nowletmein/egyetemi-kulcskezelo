@@ -1,12 +1,13 @@
-import React, { useState, useEffect } from "react";
-import { jsonOptions, request } from "../api.js";
+import { useEffect, useState } from "react";
+import { request } from "../api.js";
+import ErrorToast from "./errorToast.jsx";
 
 function getFloorDisplayName(floor) {
   if (!Number.isInteger(floor?.number)) return "Ismeretlen emelet";
   return floor.number === 0 ? "Földszint" : `${floor.number}. emelet`;
 }
 
-export default function Dashboard({ user, onBookingCreated }) {
+export default function Dashboard({ user, onSelectRoom }) {
   const [buildings, setBuildings] = useState([]);
   const [floors, setFloors] = useState([]);
 
@@ -21,54 +22,8 @@ export default function Dashboard({ user, onBookingCreated }) {
     rooms: [],
     error: "",
   });
-  const [bookingRoom, setBookingRoom] = useState(null);
-  const [startTime, setStartTime] = useState("");
-  const [endTime, setEndTime] = useState("");
-  const [specialRequest, setSpecialRequest] = useState("");
-  const [bookingError, setBookingError] = useState("");
-  const [bookingNotice, setBookingNotice] = useState("");
-  const [bookingSaving, setBookingSaving] = useState(false);
   const canBook =
     user && (!user.roles?.length || user.roles.includes("Oktato"));
-
-  const submitBooking = async (event) => {
-    event.preventDefault();
-    setBookingError("");
-    setBookingNotice("");
-
-    if (!user?.id || !bookingRoom || !startTime || !endTime) {
-      setBookingError("Válassz időpontot a foglaláshoz.");
-      return;
-    }
-    if (new Date(startTime) >= new Date(endTime)) {
-      setBookingError("A foglalás kezdete legyen korábbi a végénél.");
-      return;
-    }
-
-    setBookingSaving(true);
-    try {
-      await request(
-        "/bookings",
-        jsonOptions("POST", {
-          userId: Number(user.id),
-          roomId: bookingRoom.id,
-          startTime,
-          endTime,
-          specialRequest: specialRequest.trim(),
-        }),
-      );
-      setBookingNotice("A foglalási kérelmet rögzítettük.");
-      setBookingRoom(null);
-      setStartTime("");
-      setEndTime("");
-      setSpecialRequest("");
-      onBookingCreated?.();
-    } catch (bookingSubmitError) {
-      setBookingError(bookingSubmitError.message);
-    } finally {
-      setBookingSaving(false);
-    }
-  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -177,7 +132,7 @@ export default function Dashboard({ user, onBookingCreated }) {
   if (error) {
     return (
       <div className="dashboard-container">
-        <p>Hiba történt: {error}</p>
+        <ErrorToast message={error} onDismiss={() => setError(null)} />
       </div>
     );
   }
@@ -195,6 +150,12 @@ export default function Dashboard({ user, onBookingCreated }) {
 
   return (
     <div className="dashboard-container">
+      <ErrorToast
+        message={roomsError}
+        onDismiss={() =>
+          setRoomsLoadResult((current) => ({ ...current, error: "" }))
+        }
+      />
       <section className="step-section">
         <div className="step-header">
           <h3>Épület kiválasztása</h3>
@@ -251,11 +212,7 @@ export default function Dashboard({ user, onBookingCreated }) {
 
         {roomsLoading ? (
           <p>Termek betöltése...</p>
-        ) : roomsError ? (
-          <p className="auth-error" role="alert">
-            {roomsError}
-          </p>
-        ) : currentRooms.length === 0 ? (
+        ) : roomsError ? null : currentRooms.length === 0 ? (
           <p>Ezen az emeleten nincs terem.</p>
         ) : (
           <div className="cards-grid rooms-grid">
@@ -280,77 +237,20 @@ export default function Dashboard({ user, onBookingCreated }) {
                   <button
                     type="button"
                     className="primary-btn"
-                    onClick={() => {
-                      setBookingRoom(room);
-                      setBookingError("");
-                      setBookingNotice("");
-                    }}
+                    onClick={() =>
+                      onSelectRoom?.({
+                        ...room,
+                        buildingName: getBuildingDisplayName(selectedBuilding),
+                        floorName: getFloorDisplayName(selectedFloor),
+                      })
+                    }
                   >
                     Terem foglalása
                   </button>
                 )}
-                {bookingRoom?.id === room.id && (
-                  <form className="booking-form" onSubmit={submitBooking}>
-                    <label className="form-group">
-                      Kezdés
-                      <input
-                        type="datetime-local"
-                        value={startTime}
-                        onChange={(event) => setStartTime(event.target.value)}
-                        required
-                      />
-                    </label>
-                    <label className="form-group">
-                      Befejezés
-                      <input
-                        type="datetime-local"
-                        value={endTime}
-                        onChange={(event) => setEndTime(event.target.value)}
-                        required
-                      />
-                    </label>
-                    <label className="form-group">
-                      Megjegyzés
-                      <textarea
-                        value={specialRequest}
-                        onChange={(event) =>
-                          setSpecialRequest(event.target.value)
-                        }
-                        maxLength={1000}
-                      />
-                    </label>
-                    {bookingError && (
-                      <p className="auth-error" role="alert">
-                        {bookingError}
-                      </p>
-                    )}
-                    <div className="booking-form-actions">
-                      <button
-                        type="button"
-                        className="cancel-btn"
-                        onClick={() => setBookingRoom(null)}
-                        disabled={bookingSaving}
-                      >
-                        Mégse
-                      </button>
-                      <button
-                        type="submit"
-                        className="primary-btn"
-                        disabled={bookingSaving}
-                      >
-                        {bookingSaving ? "Küldés..." : "Foglalás beküldése"}
-                      </button>
-                    </div>
-                  </form>
-                )}
               </div>
             ))}
           </div>
-        )}
-        {bookingNotice && (
-          <p className="booking-success" role="status">
-            {bookingNotice}
-          </p>
         )}
       </section>
     </div>

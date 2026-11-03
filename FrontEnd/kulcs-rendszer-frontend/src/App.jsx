@@ -7,6 +7,7 @@ import Dashboard from "./Components/dashboard.jsx";
 import UserProfile from "./Components/userprofile.jsx";
 import AdminPage from "./Components/adminpage.jsx";
 import BookingsPage from "./Components/bookingspage.jsx";
+import RoomInfo from "./Components/roominfo.jsx";
 import {
   getUserFromToken,
   jsonOptions,
@@ -26,6 +27,7 @@ function App() {
         ? "dashboard"
         : "login",
   );
+  const [selectedRoom, setSelectedRoom] = useState(null);
   const user = session?.user ?? null;
 
   const getLandingPage = (authenticatedUser) =>
@@ -80,11 +82,13 @@ function App() {
   const handleLogout = () => {
     removeToken();
     setSession(null);
+    setSelectedRoom(null);
     setCurrentPage("login");
   };
 
   return (
     <div className="app-shell">
+      <div id="error-toast-region" className="error-toast-region" />
       <Header
         user={user}
         onLogout={handleLogout}
@@ -110,7 +114,22 @@ function App() {
         {currentPage === "dashboard" && (
           <Dashboard
             user={user}
-            onBookingCreated={() => setCurrentPage("bookings")}
+            onSelectRoom={(room) => {
+              setSelectedRoom(room);
+              setCurrentPage("room-info");
+            }}
+          />
+        )}
+
+        {currentPage === "room-info" && (
+          <RoomInfo
+            room={selectedRoom}
+            user={user}
+            onBack={() => setCurrentPage("dashboard")}
+            onBookingCreated={() => {
+              setSelectedRoom(null);
+              setCurrentPage("bookings");
+            }}
           />
         )}
 

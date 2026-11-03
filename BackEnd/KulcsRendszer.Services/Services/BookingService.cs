@@ -40,6 +40,19 @@ namespace KulcsRendszer.Services.Services {
 
         public async Task<IReadOnlyList<BookingDto>> GetAllBookingsAsync(
             CancellationToken cancellationToken) {
+            return await _context.Bookings
+                .AsNoTracking()
+                .OrderBy(booking => booking.StartTime)
+                .Select(booking => new BookingDto {
+                    Id = booking.Id,
+                    UserId = booking.UserId,
+                    RoomId = booking.RoomId,
+                    StartTime = booking.StartTime,
+                    EndTime = booking.EndTime,
+                    Status = booking.Status,
+                    SpecialRequest = booking.SpecialRequest
+                })
+                .ToListAsync(cancellationToken);
             var bookings = await _context.Bookings
                 .AsNoTracking()
                 .ToListAsync(cancellationToken);

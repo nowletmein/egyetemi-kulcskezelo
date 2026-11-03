@@ -15,7 +15,8 @@ namespace KulcsRendszer.API.Controllers {
             _bookingService = bookingService;
         }
 
-        [HttpGet]
+        [HttpGet("getall")]
+        [Authorize(Roles = "Admin")]
         [ProducesResponseType(
             typeof(IReadOnlyList<BookingDto>),
             StatusCodes.Status200OK)]
