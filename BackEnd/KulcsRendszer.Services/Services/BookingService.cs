@@ -53,6 +53,11 @@ namespace KulcsRendszer.Services.Services {
                     SpecialRequest = booking.SpecialRequest
                 })
                 .ToListAsync(cancellationToken);
+            var bookings = await _context.Bookings
+                .AsNoTracking()
+                .ToListAsync(cancellationToken);
+
+            return bookings.Select(ToDto).ToList();
         }
 
         public async Task<IReadOnlyList<BookingDto>> GetUserBookingsAsync(
