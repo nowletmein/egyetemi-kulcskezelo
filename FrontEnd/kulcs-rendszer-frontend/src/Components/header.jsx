@@ -17,24 +17,29 @@ export default function Header({
 
       {user ? (
         <div className="header-user-section">
-          <button
-            className={`nav-btn ${currentPage === "dashboard" ? "active" : ""}`}
-            onClick={() => setCurrentPage("dashboard")}
-          >
-            Foglalás
-          </button>
-          <button
-            className={`nav-btn ${currentPage === "my-bookings" ? "active" : ""}`}
-            onClick={() => setCurrentPage("my-bookings")}
-          >
-            Saját kulcsok
-          </button>
-          <button
-            className={`nav-btn ${currentPage === "admin" ? "active" : ""}`}
-            onClick={() => setCurrentPage("admin")}
-          >
-            Adminisztráció
-          </button>
+          {user.roles?.includes("Admin") ? (
+            <button
+              className={`nav-btn ${currentPage === "admin" ? "active" : ""}`}
+              onClick={() => setCurrentPage("admin")}
+            >
+              Adminisztráció
+            </button>
+          ) : (
+            <>
+              <button
+                className={`nav-btn ${currentPage === "dashboard" ? "active" : ""}`}
+                onClick={() => setCurrentPage("dashboard")}
+              >
+                Foglalás
+              </button>
+              <button
+                className={`nav-btn ${currentPage === "bookings" ? "active" : ""}`}
+                onClick={() => setCurrentPage("bookings")}
+              >
+                Lefoglalt termek
+              </button>
+            </>
+          )}
 
           <div
             className={`user-profile-clickable ${currentPage === "profile" ? "active-profile" : ""}`}

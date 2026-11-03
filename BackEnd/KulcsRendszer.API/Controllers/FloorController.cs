@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using KulcsRendszer.DataContext.Dtos;
 using KulcsRendszer.Services.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -10,6 +11,7 @@ namespace KulcsRendszer.API.Controllers {
 
     [ApiController]
     [Route("api/Floor")]
+    [Authorize]
     public class FloorController : ControllerBase {
         private readonly IFloorService _floorService;
         private readonly IRoomService _roomService;
@@ -48,18 +50,21 @@ namespace KulcsRendszer.API.Controllers {
         }
 
         [HttpPost("create")]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<FloorDto>> Create([FromBody] FloorCreateDto floorCreateDto) {
             var createdFloor = await _floorService.Create(floorCreateDto);
             return CreatedAtAction(nameof(Get), new { id = createdFloor.Id }, createdFloor);
         }
 
         [HttpPut("update/{id:int}")]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<FloorDto>> Update(int id, [FromBody] FloorUpdateDto floorUpdateDto) {
             var updatedFloor = await _floorService.Update(id, floorUpdateDto);
             return Ok(updatedFloor);
         }
 
         [HttpDelete("delete/{id:int}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(int id) {
             await _floorService.Delete(id);
             return NoContent();

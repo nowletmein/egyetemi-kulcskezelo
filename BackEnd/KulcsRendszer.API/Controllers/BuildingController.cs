@@ -3,12 +3,14 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using KulcsRendszer.DataContext.Dtos;
 using KulcsRendszer.Services.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace KulcsRendszer.Controllers {
 
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class BuildingController : ControllerBase {
         private readonly IBuildingService _buildingService;
 
@@ -35,18 +37,21 @@ namespace KulcsRendszer.Controllers {
         }
 
         [HttpPost("create")]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<BuildingDto>> Create([FromBody] BuildingCreateDto buildingCreateDto) {
             var createdBuilding = await _buildingService.Create(buildingCreateDto);
             return CreatedAtAction(nameof(Get), new { id = createdBuilding.Id }, createdBuilding);
         }
 
         [HttpPut("update/{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<BuildingDto>> Update(int id, [FromBody] BuildingUpdateDto buildingUpdateDto) {
             var updatedBuilding = await _buildingService.Update(id, buildingUpdateDto);
             return Ok(updatedBuilding);
         }
 
         [HttpDelete("delete/{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(int id) {
             await _buildingService.Delete(id);
             return NoContent();

@@ -1,0 +1,214 @@
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { request } from "../api.js";
+
+function formatDate(value) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleString("hu-HU");
+}
+
+export default function BookingsPage({ user }) {
+  const [bookings, setBookings] = useState([]);
+  const [roomNames, setRoomNames] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+
+  const loadBookings = useCallback(async () => {
+    if (!user?.id) {
+      setError("A felhasználói azonosító nem található a bejelentkezési tokenben.");
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+    try {
+      const result = await request(
+        `/bookings/user/${encodeURIComponent(user.id)}`,
+      );
+      if (!Array.isArray(result)) {
+        throw new Error("A foglalások API-válasza érvénytelen formátumú.");
+      }
+      setBookings(result);
+    } catch (loadError) {
+      if (loadError.status === 404) {
+        setBookings([]);
+      } else {
+        setError(`A foglalások betöltése nem sikerült: ${loadError.message}`);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    loadBookings();
+  }, [loadBookings]);
+
+  useEffect(() => {
+    let active = true;
+    const loadRoomNames = async () => {
+      try {
+        const floors = await request("/Floor/getall");
+        const roomLists = await Promise.all(
+          floors.map((floor) => request(`/Floor/${floor.id}/rooms`)),
+        );
+        if (!active) return;
+
+        const names = Object.fromEntries(
+          roomLists
+            .flat()
+            .map((room) => [room.id, room.name || room.id]),
+        );
+        setRoomNames(names);
+      } catch (loadError) {
+        console.error(
+          "A foglalásokhoz tartozó teremnevek betöltése nem sikerült.",
+          loadError,
+        );
+      }
+    };
+
+    if (bookings.length > 0) loadRoomNames();
+    return () => {
+      active = false;
+    };
+  }, [bookings]);
+
+  const { currentBookings, previousBookings } = useMemo(() => {
+    const now = Date.now();
+    const current = [];
+    const previous = [];
+    for (const booking of bookings) {
+      (new Date(booking.endTime).getTime() >= now ? current : previous).push(
+        booking,
+      );
+    }
+    current.sort(
+      (first, second) =>
+        new Date(first.startTime).getTime() -
+        new Date(second.startTime).getTime(),
+    );
+    previous.sort(
+      (first, second) =>
+        new Date(second.startTime).getTime() -
+        new Date(first.startTime).getTime(),
+    );
+    return { currentBookings: current, previousBookings: previous };
+  }, [bookings]);
+
+  const deleteBooking = async (booking) => {
+    if (!window.confirm("Biztosan törlöd ezt a foglalást?")) return;
+
+    setError("");
+    setNotice("");
+    try {
+      await request(
+        `/bookings?bookingId=${encodeURIComponent(booking.id)}`,
+        { method: "DELETE" },
+      );
+      setNotice("A foglalás törölve.");
+      await loadBookings();
+    } catch (deleteError) {
+      setError(`A foglalás törlése nem sikerült: ${deleteError.message}`);
+    }
+  };
+
+  const renderBookings = (items) =>
+    items.length === 0 ? (
+      <p className="booking-empty">Nincs megjeleníthető foglalás.</p>
+    ) : (
+      <div className="booking-list">
+        {items.map((booking) => (
+          <article className="booking-item" key={booking.id}>
+            <div className="booking-item-heading">
+              <h3>{roomNames[booking.roomId] || `Terem ${booking.roomId}`}</h3>
+              <span>{booking.status}</span>
+            </div>
+            <dl>
+              <div>
+                <dt>Kezdés</dt>
+                <dd>{formatDate(booking.startTime)}</dd>
+              </div>
+              <div>
+                <dt>Befejezés</dt>
+                <dd>{formatDate(booking.endTime)}</dd>
+              </div>
+              {booking.specialRequest && (
+                <div>
+                  <dt>Megjegyzés</dt>
+                  <dd>{booking.specialRequest}</dd>
+                </div>
+              )}
+            </dl>
+            <button
+              type="button"
+              className="admin-button"
+              onClick={() => deleteBooking(booking)}
+            >
+              Foglalás törlése
+            </button>
+          </article>
+        ))}
+      </div>
+    );
+
+  if (loading) {
+    return (
+      <main className="admin-page">
+        <p className="admin-loading">Foglalások betöltése...</p>
+      </main>
+    );
+  }
+
+  return (
+    <main className="admin-page bookings-page">
+      <header className="admin-heading">
+        <div>
+          <h1>Lefoglalt termek</h1>
+          <p className="admin-intro">
+            A jelenlegi, közelgő és korábbi foglalásaid.
+          </p>
+        </div>
+        <button
+          type="button"
+          className="admin-button"
+          onClick={loadBookings}
+          disabled={loading}
+        >
+          Frissítés
+        </button>
+      </header>
+      {error && (
+        <div className="admin-alert admin-alert-error" role="alert">
+          {error}
+        </div>
+      )}
+      {notice && (
+        <div className="admin-alert admin-alert-success" role="status">
+          {notice}
+        </div>
+      )}
+      <section className="admin-panel">
+        <div className="admin-panel-heading">
+          <div>
+            <p className="admin-eyebrow">AKTÍV</p>
+            <h2>Jelenlegi és közelgő foglalások</h2>
+          </div>
+          <span className="admin-count">{currentBookings.length} foglalás</span>
+        </div>
+        {renderBookings(currentBookings)}
+      </section>
+      <section className="admin-panel">
+        <div className="admin-panel-heading">
+          <div>
+            <p className="admin-eyebrow">ELŐZMÉNYEK</p>
+            <h2>Korábbi foglalások</h2>
+          </div>
+          <span className="admin-count">{previousBookings.length} foglalás</span>
+        </div>
+        {renderBookings(previousBookings)}
+      </section>
+    </main>
+  );
+}

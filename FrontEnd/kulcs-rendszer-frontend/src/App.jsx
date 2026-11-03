@@ -6,19 +6,76 @@ import Register from "./Components/register.jsx";
 import Dashboard from "./Components/dashboard.jsx";
 import UserProfile from "./Components/userprofile.jsx";
 import AdminPage from "./Components/adminpage.jsx";
+import BookingsPage from "./Components/bookingspage.jsx";
+import {
+  getUserFromToken,
+  jsonOptions,
+  removeToken,
+  request,
+  restoreSession,
+  storeToken,
+} from "./api.js";
 import "./App.css";
 
 function App() {
-  const [currentPage, setCurrentPage] = useState("login");
-  const [user, setUser] = useState(null);
+  const [session, setSession] = useState(restoreSession);
+  const [currentPage, setCurrentPage] = useState(
+    session?.user.roles.includes("Admin")
+      ? "admin"
+      : session
+        ? "dashboard"
+        : "login",
+  );
+  const user = session?.user ?? null;
 
-  const handleLogin = () => {
-    setUser({ name: "Kovács Balázs", email: "student@unikey.hu" });
-    setCurrentPage("dashboard");
+  const getLandingPage = (authenticatedUser) =>
+    authenticatedUser.roles.includes("Admin") ? "admin" : "dashboard";
+
+  const handleAuthenticated = (token, fallbackUser = {}) => {
+    const tokenUser = getUserFromToken(token);
+    const authenticatedUser = {
+      ...fallbackUser,
+      ...tokenUser,
+      name: tokenUser.name || fallbackUser.name || "",
+      email: tokenUser.email || fallbackUser.email || "",
+    };
+
+    storeToken(token);
+    setSession({ token, user: authenticatedUser });
+    setCurrentPage(getLandingPage(authenticatedUser));
+  };
+
+  const handleLogin = async (email, password) => {
+    const token = await request(
+      "/User/login",
+      jsonOptions("POST", { Name: "", Email: email.trim(), Password: password }),
+    );
+    if (typeof token !== "string" || !token) {
+      throw new Error("A bejelentkezés nem adott vissza tokent.");
+    }
+
+    handleAuthenticated(token, { email: email.trim() });
+  };
+
+  const handleRegister = async (name, email, password) => {
+    const token = await request(
+      "/User/create",
+      jsonOptions("POST", {
+        Name: name.trim(),
+        Email: email.trim(),
+        Password: password,
+      }),
+    );
+    if (typeof token !== "string" || !token) {
+      throw new Error("A regisztráció nem adott vissza tokent.");
+    }
+
+    handleAuthenticated(token, { name: name.trim(), email: email.trim() });
   };
 
   const handleLogout = () => {
-    setUser(null);
+    removeToken();
+    setSession(null);
     setCurrentPage("login");
   };
 
@@ -41,37 +98,37 @@ function App() {
 
         {currentPage === "register" && (
           <Register
-            onRegisterSuccess={handleLogin}
+            onRegister={handleRegister}
             onNavigateLogin={() => setCurrentPage("login")}
           />
         )}
 
-        {currentPage === "dashboard" && <Dashboard />}
+        {currentPage === "dashboard" && (
+          <Dashboard
+            user={user}
+            onBookingCreated={() => setCurrentPage("bookings")}
+          />
+        )}
 
         {currentPage === "admin" && <AdminPage />}
 
-        {currentPage === "profile" && <UserProfile user={user} />}
-
-        {currentPage === "my-bookings" && (
-          <div className="auth-card">
-            <h2>Saját Aktív Kulcsok</h2>
-            <p>Jelenleg kikért kulcsaid és lejárati időd.</p>
-            <div
-              style={{
-                marginTop: "20px",
-                textAlign: "left",
-                padding: "15px",
-                background: "var(--code-bg)",
-                borderRadius: "8px",
-              }}
-            >
-              <strong>I.101 Lab Kulcs</strong>
-              <p style={{ fontSize: "14px", marginTop: "5px" }}>
-                Lejárat: 16:30 (Hátralévő idő: 1ó 20p)
-              </p>
-            </div>
-          </div>
+        {currentPage === "profile" && (
+          <UserProfile
+            user={user}
+            onUserUpdated={(updatedUser) =>
+              setSession((currentSession) =>
+                currentSession
+                  ? {
+                      ...currentSession,
+                      user: { ...currentSession.user, ...updatedUser },
+                    }
+                  : currentSession,
+              )
+            }
+          />
         )}
+
+        {currentPage === "bookings" && <BookingsPage user={user} />}
       </main>
 
       <Footer />

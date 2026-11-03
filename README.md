@@ -39,11 +39,16 @@ A projekt egy tobbkonteneres kornyezetben fut, amely magaban foglalja a **React*
 
 ### Gyors inditas
 
-A projekt gyokerkonyvtaraban futtasd a kovetkezo parancsot:
+A projekt gyokerkonyvtaraban masold le a fejlesztoi kornyezet valtozoit tartalmazo mintafajlt, majd inditsd el a teljes stacket:
 
 ```bash
+cp .env.sample .env
 docker compose up --build
 ```
+
+Az `.env.sample`-ben levo jelszavak kizarolag helyi fejlesztesi es tesztelesi celra valok. Eles kornyezetben allits be egyedi, biztonsagos ertekeket; a `.env` fajlt ne commitold.
+
+**Fontos:** a `docker-compose.yml` `SEEDADMINEMAIL` es `SEEDADMINPASSWORD` valtozoneveket var, az `.env.sample` viszont `SEEDDATA_ADMINEMAIL` es `SEEDDATA_ADMINPASSWORD` neveket tartalmaz. Az inditas elott nevezd at ezt a ket sort a `.env` fajlban a Compose altal vart nevekre; kulonben az Admin fiok seedelese nem a mintabeli adatokkal tortenik.
 
 A kontener-infrastruktura leallitasa:
 
@@ -56,6 +61,16 @@ docker compose down
 - Backend: 5000:8080
 - Frontend: 3000:80
 - Database: 1433:1433
+
+### Fejlesztoi tesztfiok
+
+Az elso inditaskor az adatbazis-seed letrehozza mind a negy szerepkort, es egy Admin felhasznalot. Az alabbi bejelentkezesi adatok az `.env.sample` fejlesztoi alapertelmezesei; a fent jelzett valtozonev-javitas utan hasznalhatok:
+
+| Szerepkor | Nev | E-mail / felhasznalonev | Jelszo |
+| :--- | :--- | :--- | :--- |
+| Admin | Rendszergazda | `admin@example.com` | `StrongDevPassword123!` |
+
+Ez a fiok es jelszo csak fejlesztoi tesztadathoz valo, eles rendszerben ne hasznald. A seed nem hoz letre Oktato, Portas vagy Igazgato tesztfelhasznalot. Regisztracio utan az uj felhasznalonak nincs szerepkore; Admin fiokkal a felhasznalo kezelo feluleten rendelheto hozza. A szerepkorok ID-it a `GET /api/User/roles` vegponttal lehet lekerdezni.
 
 ---
 
@@ -212,7 +227,7 @@ erDiagram
 
 **Health**
 
-- GET /api/Health: A rendszer es az adatbazis-kapcsolat valos ideju allapotanak lekerdezese.
+- GET /api/health : A rendszer es az adatbazis-kapcsolat valos ideju allapotanak lekerdezese.
 
 **KulcsRendszer.API**
 
@@ -220,15 +235,19 @@ erDiagram
 
 **User**
 
-- GET /api/User/{id} : Egy adott azonositoju felhasznalo alapveto adatainak lekerdezese.
+- GET /api/User/{id} : A tokenhez tartozo felhasznalo alapveto adatainak lekerdezese; az URL-ben kapott id-t a vegpont jelenleg nem hasznalja.
+- GET /api/User : Az osszes felhasznalo listajanak lekerdezese.
+- GET /api/User/info/{id} : Egy adott azonositoju felhasznalo reszletes informacioinak lekerdezese.
+- GET /api/User/roles : Az osszes szerepkor listajanak lekerdezese.
 - DELETE /api/User/{id} : Felhasznalo torlese a rendszerbol id alapjan.
 - POST /api/User/create : Uj felhasznalo regisztracioja / letrehozasa a rendszerben.
-- PUT /api/User/update/{id} : Meglevo felhasznalo adatainak modositasa.
-- POST /api/User/change-password/{id} : Felhasznalo jelszavanak biztonsagos megvaltoztatasa.
+- POST /api/User/login : Bejelentkezes e-mail-cimmel es jelszoval.
+- PUT /api/User/update : A bejelentkezett felhasznalo adatainak modositasa.
+- POST /api/User/change-password : A bejelentkezett felhasznalo jelszavanak biztonsagos megvaltoztatasa.
 - POST /api/User/role/{userId} : Szerepkor hozzarendelese egy adott azonositoju felhasznalohoz.
 - POST /api/User/role : Uj szerepkor hozzaadasa / letrehozasa a rendszerben.
 - DELETE /api/User/role/{Id} : Szerepkor torlese a rendszerbol id alapjan.
-- DELETE /api/User/role/remove/{Id} : Szerepkor eltavolita egy felhasznalotol vagy a rendszerbol id alapjan.
+- DELETE /api/User/role/remove/{Id} : Szerepkor eltavolitasa egy felhasznalotol id alapjan.
 
 **Floor**
 
@@ -248,3 +267,19 @@ erDiagram
 - POST /api/Building/create : Uj epulet letrehozasa a rendszerben.
 - PUT /api/Building/update/{id} : Meglevo epulet adatainak modositasa id alapjan.
 - DELETE /api/Building/delete/{id} : Epulet torlese a rendszerbol id alapjan.
+
+**Booking**
+
+- GET /api/bookings/user/{userId} : Egy adott felhasznalo foglalasainak lekerdezese.
+- POST /api/bookings : Uj foglalas letrehozasa.
+- DELETE /api/bookings?bookingId={bookingId} : Foglalas torlese id alapjan.
+
+**Hitelesites es jogosultsagok**
+
+- A `POST /api/User/create` es `POST /api/User/login` vegpontok nyilvanosak; mindketto JWT tokent ad vissza.
+- A tobbi User vegpont hitelesitest igenyel. A token fejlece: `Authorization: Bearer <JWT_TOKEN>`.
+- A `GET /api/User` es `GET /api/User/roles`, valamint az adminisztracios felhasznalo- es role-muveletek Admin szerepkort igenyelnek.
+- A Building es Floor lekerdezo vegpontjai bejelentkezest igenyelnek; letrehozasuk, modositasuk es torlesuk Admin szerepkorhoz kotott.
+- Foglalast Oktato vagy szerepkor nelkuli, bejelentkezett felhasznalo hozhat letre, es csak sajat felhasznaloi azonositojaval. Mas kiosztott szerepkor nem hozhat letre foglalast.
+- A sajat felhasznaloi adatok lekerdezese es modositasa, valamint a jelszocsere minden bejelentkezett felhasznalo szamara elerheto, szerepkortol fuggetlenul.
+- Foglalasokat a bejelentkezett felhasznalo csak sajat maganak kerhet le vagy torolhet; Admin mas felhasznalo foglalasait is kezelheti.
