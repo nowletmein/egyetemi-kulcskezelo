@@ -46,10 +46,6 @@ cp .env.sample .env
 docker compose up --build
 ```
 
-Az `.env.sample`-ben levo jelszavak kizarolag helyi fejlesztesi es tesztelesi celra valok. Eles kornyezetben allits be egyedi, biztonsagos ertekeket; a `.env` fajlt ne commitold.
-
-**Fontos:** a `docker-compose.yml` `SEEDADMINEMAIL` es `SEEDADMINPASSWORD` valtozoneveket var, az `.env.sample` viszont `SEEDDATA_ADMINEMAIL` es `SEEDDATA_ADMINPASSWORD` neveket tartalmaz. Az inditas elott nevezd at ezt a ket sort a `.env` fajlban a Compose altal vart nevekre; kulonben az Admin fiok seedelese nem a mintabeli adatokkal tortenik.
-
 A kontener-infrastruktura leallitasa:
 
 ```bash
@@ -64,13 +60,10 @@ docker compose down
 
 ### Fejlesztoi tesztfiok
 
-Az elso inditaskor az adatbazis-seed letrehozza mind a negy szerepkort, es egy Admin felhasznalot. Az alabbi bejelentkezesi adatok az `.env.sample` fejlesztoi alapertelmezesei; a fent jelzett valtozonev-javitas utan hasznalhatok:
 
 | Szerepkor | Nev           | E-mail / felhasznalonev | Jelszo                  |
 | :-------- | :------------ | :---------------------- | :---------------------- |
-| Admin     | Rendszergazda | `admin@example.com`     | `StrongDevPassword123!` |
-
-Ez a fiok es jelszo csak fejlesztoi tesztadathoz valo, eles rendszerben ne hasznald. A seed nem hoz letre Oktato, Portas vagy Igazgato tesztfelhasznalot. Regisztracio utan az uj felhasznalonak nincs szerepkore; Admin fiokkal a felhasznalo kezelo feluleten rendelheto hozza. A szerepkorok ID-it a `GET /api/User/roles` vegponttal lehet lekerdezni.
+| Admin     | Rendszergazda | `admin@example.com`     | `Password123!` |
 
 ---
 
