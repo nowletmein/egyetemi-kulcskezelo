@@ -24,6 +24,20 @@ export default function Header({
             >
               Adminisztráció
             </button>
+          ) : user.roles?.includes("Portas") ? (
+            <button
+              className={`nav-btn ${currentPage === "receptionist" ? "active" : ""}`}
+              onClick={() => setCurrentPage("receptionist")}
+            >
+              Portás felület
+            </button>
+          ) : user.roles?.includes("Igazgato") ? (
+            <button
+              className={`nav-btn ${currentPage === "director" ? "active" : ""}`}
+              onClick={() => setCurrentPage("director")}
+            >
+              Igazgatói áttekintés
+            </button>
           ) : (
             <>
               <button

@@ -8,6 +8,8 @@ import UserProfile from "./Components/userprofile.jsx";
 import AdminPage from "./Components/adminpage.jsx";
 import BookingsPage from "./Components/bookingspage.jsx";
 import RoomInfo from "./Components/roominfo.jsx";
+import ReceptionistPage from "./Components/receptionistpage.jsx";
+import DirectorPage from "./Components/directorpage.jsx";
 import {
   getUserFromToken,
   jsonOptions,
@@ -23,15 +25,25 @@ function App() {
   const [currentPage, setCurrentPage] = useState(
     session?.user.roles.includes("Admin")
       ? "admin"
-      : session
-        ? "dashboard"
-        : "login",
+      : session?.user.roles.includes("Portas")
+        ? "receptionist"
+        : session?.user.roles.includes("Igazgato")
+          ? "director"
+          : session
+            ? "dashboard"
+            : "login",
   );
   const [selectedRoom, setSelectedRoom] = useState(null);
   const user = session?.user ?? null;
 
   const getLandingPage = (authenticatedUser) =>
-    authenticatedUser.roles.includes("Admin") ? "admin" : "dashboard";
+    authenticatedUser.roles.includes("Admin")
+      ? "admin"
+      : authenticatedUser.roles.includes("Portas")
+        ? "receptionist"
+        : authenticatedUser.roles.includes("Igazgato")
+          ? "director"
+          : "dashboard";
 
   const handleAuthenticated = (token, fallbackUser = {}) => {
     const tokenUser = getUserFromToken(token);
@@ -134,6 +146,10 @@ function App() {
         )}
 
         {currentPage === "admin" && <AdminPage />}
+
+        {currentPage === "receptionist" && <ReceptionistPage />}
+
+        {currentPage === "director" && <DirectorPage />}
 
         {currentPage === "profile" && (
           <UserProfile

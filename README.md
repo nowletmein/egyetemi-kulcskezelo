@@ -60,9 +60,8 @@ docker compose down
 
 ### Fejlesztoi tesztfiok
 
-
-| Szerepkor | Nev           | E-mail / felhasznalonev | Jelszo                  |
-| :-------- | :------------ | :---------------------- | :---------------------- |
+| Szerepkor | Nev           | E-mail / felhasznalonev | Jelszo         |
+| :-------- | :------------ | :---------------------- | :------------- |
 | Admin     | Rendszergazda | `admin@example.com`     | `Password123!` |
 
 ---
