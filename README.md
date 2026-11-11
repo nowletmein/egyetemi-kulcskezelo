@@ -226,7 +226,6 @@ Az API alap URL-je fejleszteskor altalaban `http://localhost:5000`. Az alabbi ut
 | GET    | `/`           | Egyszeru uzenettel jelzi, hogy az alkalmazas elindult.            | Nyilvanos   |
 | GET    | `/api/health` | Az alkalmazas es az adatbazis health check allapotat adja vissza. | Nyilvanos   |
 
-**Kodbazis-megjegyzes:** a `Program.cs` a `/api/health` utvonalra health check middleware-t is regisztral, mikozben a `HealthController` `[Route("api/[controller]")]` es `[HttpGet]` attributumai ugyanoda, `/api/Health` utvonalra oldodnak fel. Az utvonalak kis- es nagybetu-fuggetlenek, igy jelenleg ket GET endpoint van ugyanarra az utvonalra regisztralva; ezt erdemes a backendben egyetlen megoldasra egyszerusiteni.
 
 ### User
 
@@ -280,11 +279,25 @@ Az API alap URL-je fejleszteskor altalaban `http://localhost:5000`. Az alabbi ut
 | PUT    | `/api/Room/update/{id}` | Terem modositasa. JSON: `FloorId`, `Name`, `Capacity`, `Equipment`.        | Admin          |
 | DELETE | `/api/Room/delete/{id}` | Terem torlese.                                                             | Admin          |
 
+### Key
+
+| Method | Utvonal                                                     | Leiras                                                                                                           | Jogosultsag    |
+| ------ | ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- | -------------- |
+| GET    | `/api/Key/getall`                                           | Az osszes kulcsot es a kapcsolodo adatait listazza.                                                              | Bejelentkezett |
+| GET    | `/api/Key/get/{id}`                                         | Egy kulcs adatait adja vissza.                                                                                   | Bejelentkezett |
+| POST   | `/api/Key/create`                                           | Kulcs letrehozasa. JSON: `RoomId`, `IsMasterKey`, `MasterKeyName`, `AccessibleRoomIds`.                         | Admin          |
+| PUT    | `/api/Key/update/{id}`                                      | Kulcs adatainak modositasa a fenti mezokkel. A kulcs tipusa nem valtoztathato meg.                              | Admin          |
+| DELETE | `/api/Key/delete/{id}`                                      | Kulcs torlese.                                                                                                   | Admin          |
+| POST   | `/api/Key/masterkey/{keyId}/permissions/{userId}`           | Mesterkulcs-jogosultsag adasa a felhasznalonak; a valasz tartalmazza a jogosultsag adatait.                     | Admin          |
+| DELETE | `/api/Key/masterkey/{keyId}/permissions/{userId}`           | Mesterkulcs-jogosultsag visszavonasa a felhasznalotol.                                                           | Admin          |
+
+Kulcs letrehozasanal es modositasanal a `RoomId` a hagyomanyos kulcshoz tartozo terem azonositoja; mesterkulcs eseten az `IsMasterKey` erteke `true`, a `MasterKeyName` a neve, az `AccessibleRoomIds` pedig az altala nyithato termek azonositoinak listaja.
+
 ### Booking
 
 | Method | Utvonal                               | Leiras                                                                                    | Jogosultsag                                                                           |
 | ------ | ------------------------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| GET    | `/api/bookings/getall`                | Az osszes foglalast listazza.                                                             | Admin                                                                                 |
+| GET    | `/api/bookings/getall`                | Az osszes foglalast listazza.                                                             | Admin vagy Portas                                                                      |
 | GET    | `/api/bookings/user/{userId}`         | Egy felhasznalo foglalasait listazza.                                                     | Bejelentkezett felhasznalo csak sajat ID-val; Admin barmelyik felhasznaloet lekerheti |
 | POST   | `/api/bookings`                       | Foglalas letrehozasa. JSON: `UserId`, `RoomId`, `StartTime`, `EndTime`, `SpecialRequest`. | Oktato vagy szerepkor nelkuli felhasznalo, csak sajat `UserId` ertekkel               |
 | DELETE | `/api/bookings?bookingId={bookingId}` | Foglalas torlese azonosito alapjan.                                                       | A tulajdonos vagy Admin                                                               |
@@ -295,9 +308,8 @@ Az API alap URL-je fejleszteskor altalaban `http://localhost:5000`. Az alabbi ut
 - A tobbi User vegpont hitelesitest igenyel. A token fejlece: `Authorization: Bearer <JWT_TOKEN>`.
 - A `GET /api/User` es `GET /api/User/roles`, valamint az adminisztracios felhasznalo- es role-muveletek Admin szerepkort igenyelnek.
 - A Building, Floor es Room lekerdezo vegpontjai bejelentkezest igenyelnek; letrehozasuk, modositasuk es torlesuk Admin szerepkorhoz kotott.
+- A Key lekerdezo vegpontjai bejelentkezest igenyelnek; a kulcsok letrehozasa, modositasa, torlese, valamint a mesterkulcs-jogosultsagok kezelese Admin szerepkorhoz kotott.
 - Foglalast Oktato vagy szerepkor nelkuli, bejelentkezett felhasznalo hozhat letre, es csak sajat felhasznaloi azonositojaval. Mas kiosztott szerepkor nem hozhat letre foglalast.
 - A sajat felhasznaloi adatok lekerdezese es modositasa, valamint a jelszocsere minden bejelentkezett felhasznalo szamara elerheto, szerepkortol fuggetlenul.
-- A `GET /api/bookings/getall` Admin jogosultsagot igenyel. A felhasznalo a sajat foglalasait kerheti le es torolheti; Admin barmelyik felhasznalo foglalasait listazhatja es torolheti. Foglalas letrehozasanal az Admin sem lepheti at a POST vegpont Oktato/szerepkor nelkuli jogosultsagi es sajat-felhasznaloi-ID ellenorzeset.
+- A `GET /api/bookings/getall` Admin vagy Portas jogosultsagot igenyel. A felhasznalo a sajat foglalasait kerheti le es torolheti; Admin barmelyik felhasznalo foglalasait listazhatja es torolheti. Foglalas letrehozasanal az Admin sem lepheti at a POST vegpont Oktato/szerepkor nelkuli jogosultsagi es sajat-felhasznaloi-ID ellenorzeset.
 - A hitelesitett keresek fejlece: `Authorization: Bearer <JWT-token>`.
-
-**Jelenleg nem dokumentalhato, mert nincs hozza API controller:** a kulcsmozgatasok, hibajegyek, karbantartasok es mesterkulcs-jogosultsagok entitasaihoz nincs kulon HTTP vegpont a jelenlegi kodbazisban.
