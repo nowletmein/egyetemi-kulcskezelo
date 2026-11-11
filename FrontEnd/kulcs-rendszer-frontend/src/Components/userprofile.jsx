@@ -100,11 +100,11 @@ export default function UserProfile({ user, onUserUpdated }) {
           <p className="profile-email">{email}</p>
 
           <div className="profile-sections">
-            {notice && (
-              <p className="booking-success" role="status">
-                {notice}
-              </p>
-            )}
+            <ErrorToast
+              message={notice}
+              onDismiss={() => setNotice("")}
+              variant="success"
+            />
             <div className="profile-section-block">
               <div className="section-title-header">
                 <h3>Személyes adatok</h3>

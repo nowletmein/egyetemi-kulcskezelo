@@ -72,6 +72,7 @@ namespace KulcsRendszer.API {
             builder.Services.AddScoped<IBookingService, BookingService>();
             builder.Services.AddScoped<IBuildingService, BuildingService>();
             builder.Services.AddScoped<IFloorService, FloorService>();
+            builder.Services.AddScoped<IKeyService, KeyService>();
             //database service
             //builder.Services.AddDbContext<KulcsRendszerDbContext>(options =>
             //options.UseSqlServer(@"Server=(localdb)\mssqllocaldb;Database=KulcsRendszerDB;Trusted_Connection=True;TrustServerCertificate=true"));

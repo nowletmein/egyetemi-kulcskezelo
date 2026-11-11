@@ -223,11 +223,11 @@ export default function BookingsPage({ user }) {
           Frissítés
         </button>
       </header>
-      {notice && (
-        <div className="admin-alert admin-alert-success" role="status">
-          {notice}
-        </div>
-      )}
+      <ErrorToast
+        message={notice}
+        onDismiss={() => setNotice("")}
+        variant="success"
+      />
       <section className="admin-panel">
         <div className="admin-panel-heading">
           <div>

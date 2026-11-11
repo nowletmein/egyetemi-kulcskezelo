@@ -19,23 +19,65 @@
 }
 
 .error-toast {
+  position: relative;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  padding: 14px 18px;
-  border: 1px solid #fca5a5;
-  border-left: 5px solid #dc2626;
-  border-radius: 10px;
-  background: #fff1f2;
-  box-shadow: 0 10px 30px rgba(45, 10, 10, 0.22);
-  color: #991b1b;
+  overflow: hidden;
+  padding: 14px 18px 18px;
+  border: 1px solid #c4b5fd;
+  border-left: 5px solid var(--accent);
+  border-radius: 9px;
+  background: #e9ddff;
+  box-shadow: 0 4px 20px -12px rgba(20, 12, 45, 0.25);
+  color: #21183a;
   font-size: 15px;
   font-weight: 650;
   line-height: 1.5;
   text-align: left;
   pointer-events: auto;
   animation: error-toast-enter 180ms ease-out;
+}
+
+.error-toast-success {
+  border-color: #bbf7d0;
+  border-left-color: #16a34a;
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.error-toast-inline {
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+}
+
+.error-toast-progress {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 4px;
+  background: rgba(91, 60, 230, 0.14);
+}
+
+.error-toast-progress > span {
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform: scaleX(1);
+  transform-origin: left center;
+  animation: error-toast-progress 5000ms linear forwards;
+  background: var(--accent);
+}
+
+.error-toast-success .error-toast-progress {
+  background: rgba(22, 163, 74, 0.14);
+}
+
+.error-toast-success .error-toast-progress > span {
+  background: #16a34a;
 }
 
 .error-toast button {
@@ -61,9 +103,19 @@
   }
 }
 
+@keyframes error-toast-progress {
+  to {
+    transform: scaleX(0);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .error-toast {
     animation: none;
+  }
+
+  .error-toast-progress > span {
+    animation-duration: 0.01ms;
   }
 }
 
@@ -1439,10 +1491,13 @@
 
 .admin-note {
   margin: 0 0 12px;
-  padding: 10px 12px;
-  border-left: 3px solid #c4b5fd;
-  border-radius: 0 6px 6px 0;
-  background: rgba(237, 233, 254, 0.5);
+  padding: 14px 18px;
+  border: 1px solid #c4b5fd;
+  border-left: 5px solid var(--accent);
+  border-radius: 9px;
+  background: #e9ddff;
+  box-shadow: 0 4px 20px -12px rgba(20, 12, 45, 0.25);
+  color: #21183a;
 }
 
 .admin-booking-user-field {
