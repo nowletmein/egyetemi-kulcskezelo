@@ -19,12 +19,14 @@ namespace KulcsRendszer.Controllers {
         }
 
         [HttpGet("getall")]
+        [Authorize(Roles = "Admin,Portas")]
         public async Task<ActionResult<List<KeyDto>>> GetAll() {
             var keys = await _keyService.GetAll();
             return Ok(keys);
         }
 
         [HttpGet("get/{id}")]
+        [Authorize(Roles = "Admin,Portas")]
         public async Task<ActionResult<KeyDto>> Get(int id) {
             var key = await _keyService.Get(id);
             return Ok(key);
