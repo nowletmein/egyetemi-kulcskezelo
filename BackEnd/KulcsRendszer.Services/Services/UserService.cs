@@ -19,7 +19,7 @@ namespace KulcsRendszer.Services.Services {
     public interface IUserService {
         //User
         Task<UserDto?> Get(int userId);
-        Task<List<UserDto>> GetAll();
+        Task<List<UserInfoDto>> GetAll();
         Task<UserInfoDto?> GetInfo(int userId);
         Task<string> Create(UserCreateDto userCreateDto);
         Task<UserDto?> Update(int userId, UserUpdateDto userUpdateDto);
@@ -95,16 +95,16 @@ namespace KulcsRendszer.Services.Services {
             return MapToUserDto(user);
         }
 
-        public async Task<List<UserDto>> GetAll() {
-            var users = await _context.Users
-                .Include(u => u.Role)
-                .Include(u => u.Bookings)
-                .Include(u => u.KeyMovements)
-                .Include(u => u.ReportedTickets)
-                .Include(u => u.OrderedMaintenances)
+        public async Task<List<UserInfoDto>> GetAll() {
+            return await _context.Users
+                .AsNoTracking()
+                .Select(user => new UserInfoDto {
+                    Id = user.Id,
+                    RoleId = user.RoleId,
+                    Name = user.Name,
+                    Email = user.Email
+                })
                 .ToListAsync();
-
-            return users.Select(MapToUserDto).ToList();
         }
 
         public async Task<UserInfoDto?> GetInfo(int userId) {

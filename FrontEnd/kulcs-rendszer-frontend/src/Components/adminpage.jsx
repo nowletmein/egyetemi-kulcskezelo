@@ -86,6 +86,16 @@ export default function AdminPage() {
   const [adminBookingsNotice, setAdminBookingsNotice] = useState("");
   const [bookingRefreshKey, setBookingRefreshKey] = useState(0);
   const [deletingBookingId, setDeletingBookingId] = useState(null);
+  const [keys, setKeys] = useState([]);
+  const [keysLoading, setKeysLoading] = useState(false);
+  const [keysError, setKeysError] = useState("");
+  const [keyForm, setKeyForm] = useState(null);
+  const [keyRefreshKey, setKeyRefreshKey] = useState(0);
+  const [permissionUsers, setPermissionUsers] = useState([]);
+  const [permissionUsersLoading, setPermissionUsersLoading] = useState(false);
+  const [permissionUsersError, setPermissionUsersError] = useState("");
+  const [permissionKeyId, setPermissionKeyId] = useState("");
+  const [permissionUserId, setPermissionUserId] = useState("");
 
   const refreshStructure = async () => {
     const [buildingData, floorData] = await Promise.all([
@@ -212,6 +222,72 @@ export default function AdminPage() {
       active = false;
     };
   }, [bookingRefreshKey, section]);
+
+  useEffect(() => {
+    if (section !== "keys" && section !== "permissions") return undefined;
+
+    let active = true;
+    const loadKeyData = async () => {
+      setKeysLoading(true);
+      setKeysError("");
+      if (section === "permissions") {
+        setPermissionUsersLoading(true);
+        setPermissionUsersError("");
+      }
+
+      const [keysResult, usersResult] = await Promise.allSettled([
+        request("/Key/getall"),
+        section === "permissions" ? request("/User") : Promise.resolve(null),
+      ]);
+
+      if (active) {
+        if (
+          keysResult.status === "fulfilled" &&
+          Array.isArray(keysResult.value)
+        ) {
+          setKeys(keysResult.value);
+          const masterKeys = keysResult.value.filter((key) => key.isMasterKey);
+          setPermissionKeyId((currentKeyId) =>
+            masterKeys.some((key) => String(key.id) === currentKeyId)
+              ? currentKeyId
+              : String(masterKeys[0]?.id ?? ""),
+          );
+        } else {
+          const message =
+            keysResult.status === "rejected"
+              ? keysResult.reason.message
+              : "A kulcslista formátuma érvénytelen.";
+          setKeys([]);
+          setKeysError(`Nem sikerült betölteni a kulcsokat: ${message}`);
+        }
+
+        if (section === "permissions") {
+          if (
+            usersResult.status === "fulfilled" &&
+            Array.isArray(usersResult.value)
+          ) {
+            setPermissionUsers(usersResult.value);
+          } else {
+            const message =
+              usersResult.status === "rejected"
+                ? usersResult.reason.message
+                : "A felhasználólista formátuma érvénytelen.";
+            setPermissionUsers([]);
+            setPermissionUsersError(
+              `Nem sikerült betölteni a felhasználókat: ${message}`,
+            );
+          }
+          setPermissionUsersLoading(false);
+        }
+        setKeysLoading(false);
+      }
+    };
+
+    loadKeyData();
+    return () => {
+      active = false;
+    };
+  }, [keyRefreshKey, section]);
 
   useEffect(() => {
     if (section !== "bookings") return undefined;
@@ -636,6 +712,132 @@ export default function AdminPage() {
     }
   };
 
+  const saveKey = async (event) => {
+    event.preventDefault();
+    const isEditing = keyForm.id !== undefined;
+    const payload = {
+      isMasterKey: keyForm.isMasterKey,
+      roomId: keyForm.isMasterKey ? null : keyForm.roomId || null,
+      masterKeyName: keyForm.masterKeyName.trim(),
+      accessibleRoomIds: keyForm.isMasterKey ? keyForm.accessibleRoomIds : [],
+    };
+
+    if (
+      (payload.isMasterKey && !payload.masterKeyName) ||
+      (!payload.isMasterKey &&
+        payload.roomId &&
+        !rooms.some((room) => room.id === payload.roomId))
+    ) {
+      setError(
+        payload.isMasterKey
+          ? "A mesterkulcs neve kötelező."
+          : "Válassz érvényes termet a kulcshoz.",
+      );
+      return;
+    }
+
+    setSaving(true);
+    setError("");
+    setNotice("");
+    try {
+      await request(
+        isEditing ? `/Key/update/${keyForm.id}` : "/Key/create",
+        jsonOptions(isEditing ? "PUT" : "POST", payload),
+      );
+      setKeyForm(null);
+      setKeyRefreshKey((currentKey) => currentKey + 1);
+      setNotice(
+        isEditing ? "A kulcs adatai frissültek." : "A kulcs létrejött.",
+      );
+    } catch (saveError) {
+      setError(`A kulcs mentése nem sikerült: ${saveError.message}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const deleteKey = async (key) => {
+    const label = key.isMasterKey
+      ? `mesterkulcsot (${key.masterKeyName})`
+      : `kulcsot (#${key.id})`;
+    if (!window.confirm(`Biztosan törlöd ezt a ${label}?`)) return;
+
+    setSaving(true);
+    setError("");
+    setNotice("");
+    try {
+      await request(`/Key/delete/${key.id}`, { method: "DELETE" });
+      setKeyForm((currentForm) =>
+        currentForm?.id === key.id ? null : currentForm,
+      );
+      setKeyRefreshKey((currentKey) => currentKey + 1);
+      setNotice("A kulcs törlődött.");
+    } catch (deleteError) {
+      setError(`A kulcs törlése nem sikerült: ${deleteError.message}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const grantMasterKeyPermission = async (event) => {
+    event.preventDefault();
+    const keyId = Number(permissionKeyId);
+    const userId = Number(permissionUserId);
+    if (
+      !Number.isInteger(keyId) ||
+      !keys.some((key) => key.id === keyId && key.isMasterKey) ||
+      !Number.isInteger(userId) ||
+      !permissionUsers.some((user) => user.id === userId)
+    ) {
+      setError("Válassz érvényes mesterkulcsot és felhasználót.");
+      return;
+    }
+
+    setSaving(true);
+    setError("");
+    setNotice("");
+    try {
+      await request(`/Key/masterkey/${keyId}/permissions/${userId}`, {
+        method: "POST",
+      });
+      setPermissionUserId("");
+      setKeyRefreshKey((currentKey) => currentKey + 1);
+      setNotice("A mesterkulcs-jogosultságot kiosztottuk.");
+    } catch (grantError) {
+      setError(`A jogosultság kiosztása nem sikerült: ${grantError.message}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const revokeMasterKeyPermission = async (keyId, userId) => {
+    const user = permissionUsers.find((item) => item.id === userId);
+    if (
+      !window.confirm(
+        `Biztosan visszavonod a jogosultságot ${user?.name ?? `#${userId}`} számára?`,
+      )
+    ) {
+      return;
+    }
+
+    setSaving(true);
+    setError("");
+    setNotice("");
+    try {
+      await request(`/Key/masterkey/${keyId}/permissions/${userId}`, {
+        method: "DELETE",
+      });
+      setKeyRefreshKey((currentKey) => currentKey + 1);
+      setNotice("A mesterkulcs-jogosultságot visszavontuk.");
+    } catch (revokeError) {
+      setError(
+        `A jogosultság visszavonása nem sikerült: ${revokeError.message}`,
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const loadUser = async (userId) => {
     setSaving(true);
     setError("");
@@ -891,6 +1093,13 @@ export default function AdminPage() {
         </button>
         <button
           type="button"
+          className={section === "keys" ? "active" : ""}
+          onClick={() => setSection("keys")}
+        >
+          Kulcsok
+        </button>
+        <button
+          type="button"
           className={section === "permissions" ? "active" : ""}
           onClick={() => setSection("permissions")}
         >
@@ -913,11 +1122,11 @@ export default function AdminPage() {
       </nav>
 
       <ErrorToast message={error} onDismiss={() => setError("")} />
-      {notice && (
-        <div className="admin-alert admin-alert-success" role="status">
-          {notice}
-        </div>
-      )}
+      <ErrorToast
+        message={notice}
+        onDismiss={() => setNotice("")}
+        variant="success"
+      />
 
       {section === "master-data" && (
         <div className="admin-content">
@@ -1645,9 +1854,11 @@ export default function AdminPage() {
             />
           )}
           {adminBookingsNotice && (
-            <p className="booking-success" role="status">
-              {adminBookingsNotice}
-            </p>
+            <ErrorToast
+              message={adminBookingsNotice}
+              onDismiss={() => setAdminBookingsNotice("")}
+              variant="success"
+            />
           )}
 
           <label className="admin-search-field admin-booking-search">
@@ -1727,19 +1938,347 @@ export default function AdminPage() {
         </section>
       )}
 
-      {section === "permissions" && (
-        <section className="admin-panel admin-unavailable">
-          <span className="admin-unavailable-icon" aria-hidden="true">
-            API
-          </span>
-          <div>
-            <p className="admin-eyebrow">MESTERKULCSOK</p>
-            <h2>Jogosultságok és kiadási napló</h2>
-            <p className="admin-note">
-              A backendben létezik mesterkulcs-jogosultság adatmodell, de a
-              frontend által hívható API nincs hozzá kiépítve.
-            </p>
+      {section === "keys" && (
+        <section className="admin-panel">
+          <div className="admin-panel-heading">
+            <div>
+              <p className="admin-eyebrow">KULCSNYILVÁNTARTÁS</p>
+              <h2>Kulcsok és mesterkulcsok</h2>
+            </div>
+            <button
+              type="button"
+              className="admin-button admin-button-primary"
+              onClick={() =>
+                setKeyForm({
+                  isMasterKey: false,
+                  roomId: "",
+                  masterKeyName: "",
+                  accessibleRoomIds: [],
+                })
+              }
+              disabled={saving}
+            >
+              Új kulcs
+            </button>
           </div>
+
+          {keysError && <p role="alert">{keysError}</p>}
+
+          {keyForm && (
+            <form className="admin-form" onSubmit={saveKey}>
+              <h3>
+                {keyForm.id === undefined
+                  ? "Kulcs létrehozása"
+                  : `Kulcs szerkesztése (#${keyForm.id})`}
+              </h3>
+              <label>
+                Típus
+                <select
+                  value={keyForm.isMasterKey ? "master" : "standard"}
+                  onChange={(event) =>
+                    setKeyForm({
+                      ...keyForm,
+                      isMasterKey: event.target.value === "master",
+                    })
+                  }
+                  disabled={saving || keyForm.id !== undefined}
+                >
+                  <option value="standard">Normál kulcs</option>
+                  <option value="master">Mesterkulcs</option>
+                </select>
+              </label>
+
+              {keyForm.isMasterKey ? (
+                <>
+                  <label>
+                    Mesterkulcs neve
+                    <input
+                      required
+                      maxLength={100}
+                      value={keyForm.masterKeyName}
+                      onChange={(event) =>
+                        setKeyForm({
+                          ...keyForm,
+                          masterKeyName: event.target.value,
+                        })
+                      }
+                      placeholder="Pl. A épület főkulcsa"
+                    />
+                  </label>
+                  <label>
+                    Elérhető termek
+                    <select
+                      multiple
+                      value={keyForm.accessibleRoomIds}
+                      onChange={(event) =>
+                        setKeyForm({
+                          ...keyForm,
+                          accessibleRoomIds: Array.from(
+                            event.target.selectedOptions,
+                            (option) => option.value,
+                          ),
+                        })
+                      }
+                      disabled={saving || roomsLoading}
+                    >
+                      {rooms.map((room) => (
+                        <option key={room.id} value={room.id}>
+                          {room.name} ({room.id}) — {room.building}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <p className="admin-note">
+                    Több terem kiválasztásához használd a Ctrl vagy Cmd
+                    billentyűt.
+                  </p>
+                </>
+              ) : (
+                <label>
+                  Hozzárendelt terem
+                  <select
+                    value={keyForm.roomId}
+                    onChange={(event) =>
+                      setKeyForm({ ...keyForm, roomId: event.target.value })
+                    }
+                    disabled={saving || roomsLoading}
+                  >
+                    <option value="">Nincs hozzárendelt terem</option>
+                    {rooms.map((room) => (
+                      <option key={room.id} value={room.id}>
+                        {room.name} ({room.id}) — {room.building}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
+              <div className="admin-form-actions">
+                <button
+                  type="button"
+                  className="admin-button admin-button-quiet"
+                  onClick={() => setKeyForm(null)}
+                  disabled={saving}
+                >
+                  Mégse
+                </button>
+                <button
+                  type="submit"
+                  className="admin-button admin-button-primary"
+                  disabled={saving}
+                >
+                  {saving ? "Mentés..." : "Mentés"}
+                </button>
+              </div>
+            </form>
+          )}
+
+          <p className="admin-count">
+            {keysLoading ? "Kulcsok betöltése..." : `${keys.length} kulcs`}
+          </p>
+          {keys.length === 0 && !keysLoading ? (
+            <p className="admin-empty">Még nincs rögzített kulcs.</p>
+          ) : (
+            <div className="admin-record-list">
+              {keys.map((key) => (
+                <article className="admin-record" key={key.id}>
+                  <div className="admin-record-select">
+                    <span className="admin-record-icon" aria-hidden="true">
+                      {key.isMasterKey ? "MK" : "K"}
+                    </span>
+                    <span>
+                      <strong>
+                        {key.isMasterKey
+                          ? key.masterKeyName
+                          : `Kulcs #${key.id}`}
+                      </strong>
+                      <small>
+                        {key.isMasterKey
+                          ? `${key.accessibleRoomIds?.length ?? 0} elérhető terem · ${key.masterKeyPermissions?.length ?? 0} jogosult`
+                          : key.roomId
+                            ? `Terem: ${key.roomId}`
+                            : "Nincs teremhez rendelve"}
+                      </small>
+                    </span>
+                  </div>
+                  <div className="admin-record-actions">
+                    <button
+                      type="button"
+                      className="admin-button admin-button-quiet"
+                      onClick={() =>
+                        setKeyForm({
+                          id: key.id,
+                          isMasterKey: key.isMasterKey,
+                          roomId: key.roomId ?? "",
+                          masterKeyName: key.masterKeyName ?? "",
+                          accessibleRoomIds: key.accessibleRoomIds ?? [],
+                        })
+                      }
+                      disabled={saving}
+                    >
+                      Szerkesztés
+                    </button>
+                    <button
+                      type="button"
+                      className="admin-button admin-button-danger"
+                      onClick={() => deleteKey(key)}
+                      disabled={saving}
+                    >
+                      Törlés
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
+      {section === "permissions" && (
+        <section className="admin-panel">
+          <div className="admin-panel-heading">
+            <div>
+              <p className="admin-eyebrow">MESTERKULCSOK</p>
+              <h2>Jogosultságok kezelése</h2>
+            </div>
+          </div>
+
+          {keysError && <p role="alert">{keysError}</p>}
+          {permissionUsersError && <p role="alert">{permissionUsersError}</p>}
+
+          <form className="admin-form" onSubmit={grantMasterKeyPermission}>
+            <h3>Jogosultság kiosztása</h3>
+            <label>
+              Mesterkulcs
+              <select
+                required
+                value={permissionKeyId}
+                onChange={(event) => setPermissionKeyId(event.target.value)}
+                disabled={
+                  saving || keysLoading || !keys.some((key) => key.isMasterKey)
+                }
+              >
+                <option value="">
+                  {keysLoading
+                    ? "Mesterkulcsok betöltése..."
+                    : "Válassz mesterkulcsot"}
+                </option>
+                {keys
+                  .filter((key) => key.isMasterKey)
+                  .map((key) => (
+                    <option key={key.id} value={key.id}>
+                      {key.masterKeyName} (#{key.id})
+                    </option>
+                  ))}
+              </select>
+            </label>
+            <label>
+              Felhasználó
+              <select
+                required
+                value={permissionUserId}
+                onChange={(event) => setPermissionUserId(event.target.value)}
+                disabled={saving || permissionUsersLoading}
+              >
+                <option value="">
+                  {permissionUsersLoading
+                    ? "Felhasználók betöltése..."
+                    : "Válassz felhasználót"}
+                </option>
+                {permissionUsers.map((user) => (
+                  <option key={user.id} value={user.id}>
+                    {user.name} ({user.email}, #{user.id})
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="admin-form-actions">
+              <button
+                type="submit"
+                className="admin-button admin-button-primary"
+                disabled={
+                  saving ||
+                  keysLoading ||
+                  permissionUsersLoading ||
+                  !keys.some((key) => key.isMasterKey)
+                }
+              >
+                {saving ? "Mentés..." : "Jogosultság kiosztása"}
+              </button>
+            </div>
+          </form>
+
+          <h3>Aktuális jogosultságok</h3>
+          {keysLoading ? (
+            <p className="admin-empty">Jogosultságok betöltése...</p>
+          ) : keys.filter((key) => key.isMasterKey).length === 0 ? (
+            <p className="admin-empty">
+              Nincs mesterkulcs. Először hozz létre egyet a Kulcsok fülön.
+            </p>
+          ) : (
+            <div className="admin-record-list">
+              {keys
+                .filter((key) => key.isMasterKey)
+                .map((key) => (
+                  <article className="admin-panel" key={key.id}>
+                    <div className="admin-panel-heading">
+                      <div>
+                        <p className="admin-eyebrow">MESTERKULCS #{key.id}</p>
+                        <h3>{key.masterKeyName}</h3>
+                      </div>
+                    </div>
+                    {!key.masterKeyPermissions?.length ? (
+                      <p className="admin-empty">
+                        Ehhez a mesterkulcshoz még nincs kiosztott jogosultság.
+                      </p>
+                    ) : (
+                      <div className="admin-record-list">
+                        {key.masterKeyPermissions.map((permission) => {
+                          const user = permissionUsers.find(
+                            (item) => item.id === permission.userId,
+                          );
+                          return (
+                            <article
+                              className="admin-record"
+                              key={permission.id}
+                            >
+                              <div className="admin-record-select">
+                                <span>
+                                  <strong>
+                                    {user?.name ??
+                                      `Felhasználó #${permission.userId}`}
+                                  </strong>
+                                  <small>
+                                    {user?.email ?? `ID: ${permission.userId}`}
+                                    {permission.grantedAt
+                                      ? ` · Kiadva: ${formatBookingDate(permission.grantedAt)}`
+                                      : ""}
+                                  </small>
+                                </span>
+                              </div>
+                              <div className="admin-record-actions">
+                                <button
+                                  type="button"
+                                  className="admin-button admin-button-danger"
+                                  onClick={() =>
+                                    revokeMasterKeyPermission(
+                                      key.id,
+                                      permission.userId,
+                                    )
+                                  }
+                                  disabled={saving}
+                                >
+                                  Visszavonás
+                                </button>
+                              </div>
+                            </article>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </article>
+                ))}
+            </div>
+          )}
         </section>
       )}
 
