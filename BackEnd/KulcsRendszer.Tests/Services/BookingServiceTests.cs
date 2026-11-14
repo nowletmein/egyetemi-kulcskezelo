@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using KulcsRendszer.DataContext.Context;
 using KulcsRendszer.DataContext.Dtos;
 using KulcsRendszer.DataContext.Entities;
+using KulcsRendszer.DataContext.Enums;
 using KulcsRendszer.Services.Exceptions;
 using KulcsRendszer.Services.Services;
 using Microsoft.EntityFrameworkCore;
@@ -57,20 +58,20 @@ public class BookingServiceTests : IAsyncLifetime {
         string roomId,
         DateTime startTime,
         DateTime endTime,
-        string specialRequest = "") {
+        string specialRequest = "",
+        string status = BookingStatuses.Active) {
         var booking = new Booking {
             UserId = userId,
             RoomId = roomId,
             StartTime = startTime,
             EndTime = endTime,
-            Status = "Pending",
+            Status = status,
             SpecialRequest = specialRequest
         };
         _context.Bookings.Add(booking);
         await _context.SaveChangesAsync();
         return booking;
     }
-
     [Fact]
     public async Task GetAllBookingsAsync_ShouldReturnEmptyList_WhenNoBookingsExist() {
         var service = new BookingService(_context);
@@ -118,7 +119,7 @@ public class BookingServiceTests : IAsyncLifetime {
         Assert.Equal(booking.Id, result[0].Id);
         Assert.Equal(user.Id, result[0].UserId);
         Assert.Equal(room.Id, result[0].RoomId);
-        Assert.Equal("Pending", result[0].Status);
+        Assert.Equal(BookingStatuses.Active, result[0].Status);
         Assert.Equal("Vizsga", result[0].SpecialRequest);
     }
 
@@ -161,7 +162,7 @@ public class BookingServiceTests : IAsyncLifetime {
         Assert.Equal(room.Id, result.RoomId);
         Assert.Equal(dto.StartTime, result.StartTime);
         Assert.Equal(dto.EndTime, result.EndTime);
-        Assert.Equal("Pending", result.Status);
+        Assert.Equal(BookingStatuses.Active, result.Status);
         Assert.Equal(dto.SpecialRequest, result.SpecialRequest);
     }
 
@@ -332,5 +333,75 @@ public class BookingServiceTests : IAsyncLifetime {
         var result = await service.GetBookingOwnerIdAsync(99999, CancellationToken.None);
 
         Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task AddUserBookingAsync_ShouldThrow_WhenRoomIsUnderMaintenance() {
+        var (user, room) = await CreateUserAndRoomAsync();
+        var start = new DateTime(2026, 9, 1, 10, 0, 0);
+        _context.Maintenances.Add(new Maintenance {
+            RoomId = room.Id,
+            AdminId = user.Id,
+            StartTime = start,
+            EndTime = start.AddHours(3)
+        });
+        await _context.SaveChangesAsync();
+        var service = new BookingService(_context);
+        var dto = new BookingCreateDto {
+            UserId = user.Id,
+            RoomId = room.Id,
+            StartTime = start.AddHours(1),
+            EndTime = start.AddHours(2)
+        };
+
+        await Assert.ThrowsAsync<BookingAlreadyExistsException>(
+            () => service.AddUserBookingAsync(dto, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task AddUserBookingAsync_ShouldCreateBooking_WhenMaintenanceEndsAtBookingStart() {
+        var (user, room) = await CreateUserAndRoomAsync();
+        var start = new DateTime(2026, 9, 1, 10, 0, 0);
+        _context.Maintenances.Add(new Maintenance {
+            RoomId = room.Id,
+            AdminId = user.Id,
+            StartTime = start.AddHours(-2),
+            EndTime = start
+        });
+        await _context.SaveChangesAsync();
+        var service = new BookingService(_context);
+        var dto = new BookingCreateDto {
+            UserId = user.Id,
+            RoomId = room.Id,
+            StartTime = start,
+            EndTime = start.AddHours(1)
+        };
+
+        var result = await service.AddUserBookingAsync(dto, CancellationToken.None);
+
+        Assert.Equal(BookingStatuses.Active, result.Status);
+    }
+
+    [Fact]
+    public async Task AddUserBookingAsync_ShouldCreateBooking_WhenOverlappingBookingIsNoShow() {
+        var (user, room) = await CreateUserAndRoomAsync();
+        var start = new DateTime(2026, 9, 2, 10, 0, 0);
+        await AddBookingAsync(
+            user.Id,
+            room.Id,
+            start,
+            start.AddHours(2),
+            status: BookingStatuses.NoShow);
+        var service = new BookingService(_context);
+        var dto = new BookingCreateDto {
+            UserId = user.Id,
+            RoomId = room.Id,
+            StartTime = start,
+            EndTime = start.AddHours(1)
+        };
+
+        var result = await service.AddUserBookingAsync(dto, CancellationToken.None);
+
+        Assert.Equal(BookingStatuses.Active, result.Status);
     }
 }
