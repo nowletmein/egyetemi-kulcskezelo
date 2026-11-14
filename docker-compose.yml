@@ -22,6 +22,8 @@ services:
       - SeedData__AdminEmail=${SEEDADMINEMAIL}
       - SeedData__AdminPassword=${SEEDADMINPASSWORD}
       - ConnectionStrings__DefaultConnection=Server=database,1433;Database=KulcsRendszerDb;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;
+    volumes:
+      - audit_log_data:/app/App_Data
     depends_on:
       - database
 
@@ -36,3 +38,4 @@ services:
 
 volumes:
   mssql_data:
+  audit_log_data:

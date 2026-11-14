@@ -226,6 +226,13 @@ Az API alap URL-je fejleszteskor altalaban `http://localhost:5000`. Az alabbi ut
 | GET    | `/`           | Egyszeru uzenettel jelzi, hogy az alkalmazas elindult.            | Nyilvanos   |
 | GET    | `/api/health` | Az alkalmazas es az adatbazis health check allapotat adja vissza. | Nyilvanos   |
 
+### Auditnaplo
+
+| Method | Utvonal                             | Leiras                                                                                                        | Jogosultsag |
+| ------ | ----------------------------------- | ------------------------------------------------------------------------------------------------------------- | ----------- |
+| GET    | `/api/audit-log?page=1&pageSize=50` | Lapozott audit-esemenyeket ad vissza. Opcionális szurok: `fromUtc`, `toUtcExclusive`, `method`, `statusCode`. | Igazgato    |
+
+Az API minden HTTP-muveletet naploz (a CORS `OPTIONS` eloellenorzeseket kiveve), beleertve a sikertelen hitelesitesi es jogosultsagi valaszokat is. A naplo JSON Lines formatumban, az API `App_Data/audit-log.jsonl` fajljaba kerul; az `AuditLog:Directory` konfiguracioval a konyvtar felulbiralhato. A naplo kulon fajlban tarolodik, nem az adatbazisban. Keres- es valasztestet, query stringet, IP-cimet es hitelesitesi adatot nem tarol; a kliens User-Agent erteket igen. A Docker Compose `audit_log_data` kotete az `/app/App_Data` konyvtarat tartossa teszi, igy a naplo `docker compose down` utan is megmarad. A kotet torlesehez ne hasznald a `docker compose down --volumes` parancsot. A fajl konyvtara csak a backend szolgaltatas szamara legyen irhato, es az uzemelteto gondoskodjon a fajl vedelmerol es menteserol.
 
 ### User
 
@@ -281,15 +288,15 @@ Az API alap URL-je fejleszteskor altalaban `http://localhost:5000`. Az alabbi ut
 
 ### Key
 
-| Method | Utvonal                                                     | Leiras                                                                                                           | Jogosultsag    |
-| ------ | ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- | -------------- |
-| GET    | `/api/Key/getall`                                           | Az osszes kulcsot es a kapcsolodo adatait listazza.                                                              | Bejelentkezett |
-| GET    | `/api/Key/get/{id}`                                         | Egy kulcs adatait adja vissza.                                                                                   | Bejelentkezett |
-| POST   | `/api/Key/create`                                           | Kulcs letrehozasa. JSON: `RoomId`, `IsMasterKey`, `MasterKeyName`, `AccessibleRoomIds`.                         | Admin          |
-| PUT    | `/api/Key/update/{id}`                                      | Kulcs adatainak modositasa a fenti mezokkel. A kulcs tipusa nem valtoztathato meg.                              | Admin          |
-| DELETE | `/api/Key/delete/{id}`                                      | Kulcs torlese.                                                                                                   | Admin          |
-| POST   | `/api/Key/masterkey/{keyId}/permissions/{userId}`           | Mesterkulcs-jogosultsag adasa a felhasznalonak; a valasz tartalmazza a jogosultsag adatait.                     | Admin          |
-| DELETE | `/api/Key/masterkey/{keyId}/permissions/{userId}`           | Mesterkulcs-jogosultsag visszavonasa a felhasznalotol.                                                           | Admin          |
+| Method | Utvonal                                           | Leiras                                                                                      | Jogosultsag    |
+| ------ | ------------------------------------------------- | ------------------------------------------------------------------------------------------- | -------------- |
+| GET    | `/api/Key/getall`                                 | Az osszes kulcsot es a kapcsolodo adatait listazza.                                         | Bejelentkezett |
+| GET    | `/api/Key/get/{id}`                               | Egy kulcs adatait adja vissza.                                                              | Bejelentkezett |
+| POST   | `/api/Key/create`                                 | Kulcs letrehozasa. JSON: `RoomId`, `IsMasterKey`, `MasterKeyName`, `AccessibleRoomIds`.     | Admin          |
+| PUT    | `/api/Key/update/{id}`                            | Kulcs adatainak modositasa a fenti mezokkel. A kulcs tipusa nem valtoztathato meg.          | Admin          |
+| DELETE | `/api/Key/delete/{id}`                            | Kulcs torlese.                                                                              | Admin          |
+| POST   | `/api/Key/masterkey/{keyId}/permissions/{userId}` | Mesterkulcs-jogosultsag adasa a felhasznalonak; a valasz tartalmazza a jogosultsag adatait. | Admin          |
+| DELETE | `/api/Key/masterkey/{keyId}/permissions/{userId}` | Mesterkulcs-jogosultsag visszavonasa a felhasznalotol.                                      | Admin          |
 
 Kulcs letrehozasanal es modositasanal a `RoomId` a hagyomanyos kulcshoz tartozo terem azonositoja; mesterkulcs eseten az `IsMasterKey` erteke `true`, a `MasterKeyName` a neve, az `AccessibleRoomIds` pedig az altala nyithato termek azonositoinak listaja.
 
@@ -297,7 +304,7 @@ Kulcs letrehozasanal es modositasanal a `RoomId` a hagyomanyos kulcshoz tartozo 
 
 | Method | Utvonal                               | Leiras                                                                                    | Jogosultsag                                                                           |
 | ------ | ------------------------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| GET    | `/api/bookings/getall`                | Az osszes foglalast listazza.                                                             | Admin vagy Portas                                                                      |
+| GET    | `/api/bookings/getall`                | Az osszes foglalast listazza.                                                             | Admin vagy Portas                                                                     |
 | GET    | `/api/bookings/user/{userId}`         | Egy felhasznalo foglalasait listazza.                                                     | Bejelentkezett felhasznalo csak sajat ID-val; Admin barmelyik felhasznaloet lekerheti |
 | POST   | `/api/bookings`                       | Foglalas letrehozasa. JSON: `UserId`, `RoomId`, `StartTime`, `EndTime`, `SpecialRequest`. | Oktato vagy szerepkor nelkuli felhasznalo, csak sajat `UserId` ertekkel               |
 | DELETE | `/api/bookings?bookingId={bookingId}` | Foglalas torlese azonosito alapjan.                                                       | A tulajdonos vagy Admin                                                               |

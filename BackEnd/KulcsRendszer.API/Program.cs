@@ -1,5 +1,6 @@
 using System.Text;
 using KulcsRendszer.API.Middleware;
+using KulcsRendszer.API.Services;
 using KulcsRendszer.DataContext.Context;
 using KulcsRendszer.Services.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -43,6 +44,7 @@ namespace KulcsRendszer.API {
 
             //swagger gen
             builder.Services.AddControllers();
+            builder.Services.AddSingleton<AuditLogStore>();
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen(c => {
                 c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme {
@@ -104,6 +106,7 @@ namespace KulcsRendszer.API {
             app.UseMiddleware<ApiExceptionHandlingMiddleware>();
 
             app.UseAuthentication();
+            app.UseMiddleware<AuditLogMiddleware>();
             app.UseAuthorization();
 
             app.MapControllers();
