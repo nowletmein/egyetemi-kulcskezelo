@@ -7,10 +7,10 @@ namespace KulcsRendszer.API.Controllers {
     [Route("api/audit-log")]
     [Authorize(Roles = "Igazgato")]
     public class AuditLogController : ControllerBase {
-        private readonly AuditLogStore _auditLogStore;
+        private readonly IAuditLogService _auditLogService;
 
-        public AuditLogController(AuditLogStore auditLogStore) {
-            _auditLogStore = auditLogStore;
+        public AuditLogController(IAuditLogService auditLogService) {
+            _auditLogService = auditLogService;
         }
 
         [HttpGet]
@@ -45,7 +45,7 @@ namespace KulcsRendszer.API.Controllers {
                 return BadRequest(new { message = "A kért oldal túl nagy." });
             }
 
-            var result = await _auditLogStore.GetPageAsync(
+            var result = await _auditLogService.GetPageAsync(
                 fromUtc,
                 toUtcExclusive,
                 method,

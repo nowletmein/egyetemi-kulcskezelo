@@ -5,15 +5,15 @@ using KulcsRendszer.API.Services;
 namespace KulcsRendszer.API.Middleware {
     public class AuditLogMiddleware {
         private readonly RequestDelegate _next;
-        private readonly AuditLogStore _auditLogStore;
+        private readonly IAuditLogService _auditLogService;
         private readonly ILogger<AuditLogMiddleware> _logger;
 
         public AuditLogMiddleware(
             RequestDelegate next,
-            AuditLogStore auditLogStore,
+            IAuditLogService auditLogService,
             ILogger<AuditLogMiddleware> logger) {
             _next = next;
-            _auditLogStore = auditLogStore;
+            _auditLogService = auditLogService;
             _logger = logger;
         }
 
@@ -44,17 +44,18 @@ namespace KulcsRendszer.API.Middleware {
             context.Response.OnCompleted(async () => {
                 stopwatch.Stop();
                 try {
-                    await _auditLogStore.AppendAsync(new AuditLogEntry(
-                        eventId,
-                        startedAt,
-                        userId,
-                        userName,
-                        roles,
-                        method,
-                        path,
-                        context.Response.StatusCode,
-                        userAgent,
-                        stopwatch.ElapsedMilliseconds));
+                    await _auditLogService.AppendAsync(new AuditLogEntry {
+                        EventId = eventId,
+                        OccurredAtUtc = startedAt,
+                        UserId = userId,
+                        UserName = userName,
+                        Roles = roles,
+                        Method = method,
+                        Path = path,
+                        StatusCode = context.Response.StatusCode,
+                        UserAgent = userAgent,
+                        DurationMilliseconds = stopwatch.ElapsedMilliseconds
+                    });
                 }
                 catch (Exception exception) {
                     _logger.LogError(

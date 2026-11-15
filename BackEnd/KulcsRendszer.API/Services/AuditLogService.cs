@@ -2,32 +2,49 @@ using System.Text;
 using System.Text.Json;
 
 namespace KulcsRendszer.API.Services {
-    public sealed record AuditLogEntry(
-        Guid EventId,
-        DateTimeOffset OccurredAtUtc,
-        string? UserId,
-        string? UserName,
-        string? Roles,
-        string Method,
-        string Path,
-        int StatusCode,
-        string? UserAgent,
-        long DurationMilliseconds);
+    public class AuditLogEntry {
+        public Guid EventId { get; set; }
+        public DateTimeOffset OccurredAtUtc { get; set; }
+        public string? UserId { get; set; }
+        public string? UserName { get; set; }
+        public string? Roles { get; set; }
+        public string Method { get; set; } = "";
+        public string Path { get; set; } = "";
+        public int StatusCode { get; set; }
+        public string? UserAgent { get; set; }
+        public long DurationMilliseconds { get; set; }
+    }
 
-    public sealed record AuditLogPage(
-        IReadOnlyList<AuditLogEntry> Items,
-        int TotalCount,
-        int Page,
-        int PageSize);
+    public class AuditLogPage {
+        public IReadOnlyList<AuditLogEntry> Items { get; set; } = Array.Empty<AuditLogEntry>();
+        public int TotalCount { get; set; }
+        public int Page { get; set; }
+        public int PageSize { get; set; }
+    }
 
-    public sealed class AuditLogStore {
+    public interface IAuditLogService {
+        Task AppendAsync(
+            AuditLogEntry entry,
+            CancellationToken cancellationToken = default);
+
+        Task<AuditLogPage> GetPageAsync(
+            DateTimeOffset? fromUtc,
+            DateTimeOffset? toUtcExclusive,
+            string? method,
+            int? statusCode,
+            int page,
+            int pageSize,
+            CancellationToken cancellationToken = default);
+    }
+
+    public class AuditLogService : IAuditLogService {
         private static readonly JsonSerializerOptions JsonOptions =
             new(JsonSerializerDefaults.Web);
 
         private readonly string _filePath;
         private readonly SemaphoreSlim _fileLock = new(1, 1);
 
-        public AuditLogStore(
+        public AuditLogService(
             IConfiguration configuration,
             IWebHostEnvironment environment) {
             var configuredDirectory = configuration["AuditLog:Directory"];
@@ -120,7 +137,12 @@ namespace KulcsRendszer.API.Services {
                     .Take(pageSize)
                     .ToArray();
 
-                return new AuditLogPage(items, totalCount, page, pageSize);
+                return new AuditLogPage {
+                    Items = items,
+                    TotalCount = totalCount,
+                    Page = page,
+                    PageSize = pageSize
+                };
             }
             finally {
                 _fileLock.Release();

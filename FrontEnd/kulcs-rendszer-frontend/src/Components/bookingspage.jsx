@@ -18,8 +18,8 @@ async function fetchBookings(userId) {
   try {
     result = await request(`/bookings/user/${encodeURIComponent(userId)}`);
   } catch (error) {
-    if (error.status === 404) return [];
-    throw error;
+    if (error.status !== 404) throw error;
+    result = [];
   }
 
   if (!Array.isArray(result)) {
