@@ -1,4 +1,5 @@
 using System.Text;
+using KulcsRendszer.API.BackgroundServices;
 using KulcsRendszer.API.Middleware;
 using KulcsRendszer.DataContext.Context;
 using KulcsRendszer.Services.Services;
@@ -73,6 +74,8 @@ namespace KulcsRendszer.API {
             builder.Services.AddScoped<IBuildingService, BuildingService>();
             builder.Services.AddScoped<IFloorService, FloorService>();
             builder.Services.AddScoped<IKeyService, KeyService>();
+            builder.Services.AddScoped<INoShowService, NoShowService>();
+            builder.Services.AddHostedService<NoShowBackgroundService>();
             //database service
             //builder.Services.AddDbContext<KulcsRendszerDbContext>(options =>
             //options.UseSqlServer(@"Server=(localdb)\mssqllocaldb;Database=KulcsRendszerDB;Trusted_Connection=True;TrustServerCertificate=true"));

@@ -22,6 +22,8 @@ services:
       - SeedData__AdminEmail=${SEEDADMINEMAIL}
       - SeedData__AdminPassword=${SEEDADMINPASSWORD}
       - ConnectionStrings__DefaultConnection=Server=database,1433;Database=KulcsRendszerDb;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;
+      - NoShow__GracePeriodMinutes=15
+
     depends_on:
       - database
 
