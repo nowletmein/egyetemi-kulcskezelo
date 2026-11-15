@@ -6,8 +6,10 @@ using System.Threading.Tasks;
 using KulcsRendszer.DataContext.Context;
 using KulcsRendszer.DataContext.Dtos;
 using KulcsRendszer.DataContext.Entities;
+using KulcsRendszer.DataContext.Enums;
 using KulcsRendszer.Services.Exceptions;
 using Microsoft.EntityFrameworkCore;
+
 
 namespace KulcsRendszer.Services.Services {
     public interface IBookingService {
@@ -109,6 +111,7 @@ namespace KulcsRendszer.Services.Services {
                 .AnyAsync(
                     booking =>
                         booking.RoomId == bookingCreateDto.RoomId &&
+                        booking.Status != BookingStatuses.NoShow &&
                         booking.StartTime < bookingCreateDto.EndTime &&
                         bookingCreateDto.StartTime < booking.EndTime,
                     cancellationToken);
@@ -118,12 +121,26 @@ namespace KulcsRendszer.Services.Services {
                     "The classroom is already booked for the selected time.");
             }
 
+            var hasOverlappingMaintenance = await _context.Maintenances
+                .AsNoTracking()
+                .AnyAsync(
+                    maintenance =>
+                        maintenance.RoomId == bookingCreateDto.RoomId &&
+                        maintenance.StartTime < bookingCreateDto.EndTime &&
+                        bookingCreateDto.StartTime < maintenance.EndTime,
+                    cancellationToken);
+
+            if (hasOverlappingMaintenance) {
+                throw new BookingAlreadyExistsException(
+                    "The classroom is under maintenance during the selected time.");
+            }
+
             var booking = new Booking {
                 UserId = bookingCreateDto.UserId,
                 RoomId = bookingCreateDto.RoomId,
                 StartTime = bookingCreateDto.StartTime,
                 EndTime = bookingCreateDto.EndTime,
-                Status = "Pending",
+                Status = BookingStatuses.Active,
                 SpecialRequest = bookingCreateDto.SpecialRequest
             };
 
