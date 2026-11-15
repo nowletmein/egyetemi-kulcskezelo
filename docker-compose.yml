@@ -23,6 +23,7 @@ services:
       - SeedData__AdminPassword=${SEEDADMINPASSWORD}
       - ConnectionStrings__DefaultConnection=Server=database,1433;Database=KulcsRendszerDb;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;
       - NoShow__GracePeriodMinutes=15
+      - TZ=Europe/Budapest
 
     depends_on:
       - database
