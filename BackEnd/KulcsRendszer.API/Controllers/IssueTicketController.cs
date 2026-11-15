@@ -31,11 +31,16 @@ namespace KulcsRendszer.API.Controllers {
         }
 
         [HttpPost]
-        [Authorize(Roles = "Portas,Oktato")]
         [ProducesResponseType(typeof(IssueTicketDto), StatusCodes.Status201Created)]
         public async Task<ActionResult<IssueTicketDto>> Create(
             [FromBody] IssueTicketCreateDto issueTicketCreateDto,
             CancellationToken cancellationToken) {
+            if (User.HasClaim(claim => claim.Type == ClaimTypes.Role) &&
+                !User.IsInRole("Portas") &&
+                !User.IsInRole("Oktato")) {
+                return Forbid();
+            }
+
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
             if (!int.TryParse(userIdClaim?.Value, out var reporterId)) {
                 return Unauthorized();
