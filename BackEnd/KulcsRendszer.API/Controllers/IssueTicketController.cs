@@ -30,6 +30,24 @@ namespace KulcsRendszer.API.Controllers {
             return Ok(tickets);
         }
 
+        [HttpGet("mine")]
+        [ProducesResponseType(
+            typeof(IReadOnlyList<IssueTicketDto>),
+            StatusCodes.Status200OK)]
+        public async Task<ActionResult<IReadOnlyList<IssueTicketDto>>> GetMine(
+            CancellationToken cancellationToken) {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (!int.TryParse(userIdClaim?.Value, out var reporterId)) {
+                return Unauthorized();
+            }
+
+            var tickets = await _issueTicketService.GetByReporterAsync(
+                reporterId,
+                cancellationToken);
+
+            return Ok(tickets);
+        }
+
         [HttpPost]
         [ProducesResponseType(typeof(IssueTicketDto), StatusCodes.Status201Created)]
         public async Task<ActionResult<IssueTicketDto>> Create(

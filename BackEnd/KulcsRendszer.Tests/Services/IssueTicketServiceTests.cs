@@ -157,5 +157,37 @@ public class IssueTicketServiceTests : IAsyncLifetime {
         Assert.Equal(2, result.Count);
         Assert.Equal("Második", result[0].Description);
     }
+
+    [Fact]
+    public async Task GetByReporterAsync_ShouldReturnOnlyReportersTickets() {
+        var (user, room) = await CreateUserAndRoomAsync();
+        var otherUser = new User { Name = "Másik Felhasználó", Email = "masik@example.com" };
+        _context.Users.Add(otherUser);
+        await _context.SaveChangesAsync();
+        var service = new IssueTicketService(_context);
+        await service.CreateAsync(
+            new IssueTicketCreateDto { RoomId = room.Id, Description = "Saját" },
+            user.Id,
+            CancellationToken.None);
+        await service.CreateAsync(
+            new IssueTicketCreateDto { RoomId = room.Id, Description = "Másé" },
+            otherUser.Id,
+            CancellationToken.None);
+
+        var result = await service.GetByReporterAsync(user.Id, CancellationToken.None);
+
+        Assert.Single(result);
+        Assert.Equal("Saját", result[0].Description);
+    }
+
+    [Fact]
+    public async Task GetByReporterAsync_ShouldReturnEmptyList_WhenUserHasNoTickets() {
+        var (user, _) = await CreateUserAndRoomAsync();
+        var service = new IssueTicketService(_context);
+
+        var result = await service.GetByReporterAsync(user.Id, CancellationToken.None);
+
+        Assert.Empty(result);
+    }
 }
 

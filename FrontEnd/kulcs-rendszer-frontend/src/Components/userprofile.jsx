@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { jsonOptions, request } from "../api.js";
 import ErrorToast from "./errorToast.jsx";
 
@@ -13,6 +13,51 @@ export default function UserProfile({ user, onUserUpdated }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [myTickets, setMyTickets] = useState([]);
+  const [ticketRooms, setTicketRooms] = useState({});
+  const [ticketsLoading, setTicketsLoading] = useState(true);
+  const [ticketsError, setTicketsError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    Promise.allSettled([
+      request("/issuetickets/mine"),
+      request("/Room/getall"),
+    ]).then(([ticketsResult, roomsResult]) => {
+      if (cancelled) return;
+
+      if (
+        ticketsResult.status === "fulfilled" &&
+        Array.isArray(ticketsResult.value)
+      ) {
+        setMyTickets(ticketsResult.value);
+      } else {
+        setTicketsError(
+          ticketsResult.status === "rejected"
+            ? `A hibajegyek betöltése nem sikerült: ${ticketsResult.reason.message}`
+            : "A hibajegyek API-válasza érvénytelen formátumú.",
+        );
+      }
+
+      if (
+        roomsResult.status === "fulfilled" &&
+        Array.isArray(roomsResult.value)
+      ) {
+        setTicketRooms(
+          Object.fromEntries(
+            roomsResult.value.map((room) => [room.id, room.name]),
+          ),
+        );
+      }
+
+      setTicketsLoading(false);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   const canEditProfile =
     user &&
     (!user.roles?.length ||
@@ -240,7 +285,47 @@ export default function UserProfile({ user, onUserUpdated }) {
 
             <div className="profile-section-block">
               <h3>Bejelentett hibajegyek</h3>
-              <p>A hibajegyek megjelenítése még nem érhető el.</p>
+              {ticketsError && (
+                <ErrorToast
+                  message={ticketsError}
+                  onDismiss={() => setTicketsError("")}
+                />
+              )}
+              {ticketsLoading ? (
+                <p>A hibajegyek betöltése folyamatban...</p>
+              ) : myTickets.length === 0 ? (
+                !ticketsError && <p>Még nem jelentettél be hibát.</p>
+              ) : (
+                <div className="booking-list">
+                  {myTickets.map((ticket) => (
+                    <article className="booking-item" key={ticket.id}>
+                      <div className="booking-item-heading">
+                        <h3>
+                          {ticketRooms[ticket.roomId] ||
+                            `Terem ${ticket.roomId}`}{" "}
+                          <small>#{ticket.id}</small>
+                        </h3>
+                        <span>
+                          {ticket.status === "Open" ? "Nyitott" : ticket.status}
+                        </span>
+                      </div>
+                      <dl>
+                        {ticket.keyId !== null &&
+                          ticket.keyId !== undefined && (
+                            <div>
+                              <dt>Kulcs</dt>
+                              <dd>Kulcs #{ticket.keyId}</dd>
+                            </div>
+                          )}
+                        <div>
+                          <dt>Leírás</dt>
+                          <dd>{ticket.description}</dd>
+                        </div>
+                      </dl>
+                    </article>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>

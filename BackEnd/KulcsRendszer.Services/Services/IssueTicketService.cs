@@ -14,6 +14,10 @@ namespace KulcsRendszer.Services.Services {
         Task<IReadOnlyList<IssueTicketDto>> GetAllAsync(
             CancellationToken cancellationToken);
 
+        Task<IReadOnlyList<IssueTicketDto>> GetByReporterAsync(
+            int reporterId,
+            CancellationToken cancellationToken);
+
         Task<IssueTicketDto> CreateAsync(
             IssueTicketCreateDto issueTicketCreateDto,
             int reporterId,
@@ -33,6 +37,24 @@ namespace KulcsRendszer.Services.Services {
             CancellationToken cancellationToken) {
             return await _context.IssueTickets
                 .AsNoTracking()
+                .OrderByDescending(ticket => ticket.Id)
+                .Select(ticket => new IssueTicketDto {
+                    Id = ticket.Id,
+                    KeyId = ticket.KeyId,
+                    RoomId = ticket.RoomId,
+                    ReporterId = ticket.ReporterId,
+                    Description = ticket.Description,
+                    Status = ticket.Status
+                })
+                .ToListAsync(cancellationToken);
+        }
+
+        public async Task<IReadOnlyList<IssueTicketDto>> GetByReporterAsync(
+            int reporterId,
+            CancellationToken cancellationToken) {
+            return await _context.IssueTickets
+                .AsNoTracking()
+                .Where(ticket => ticket.ReporterId == reporterId)
                 .OrderByDescending(ticket => ticket.Id)
                 .Select(ticket => new IssueTicketDto {
                     Id = ticket.Id,
