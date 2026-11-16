@@ -132,12 +132,16 @@ public class BookingServiceTests : IAsyncLifetime {
     }
 
     [Fact]
-    public async Task GetUserBookingsAsync_ShouldThrowBookingNotFoundException_WhenUserHasNoBookings() {
+    public async Task GetUserBookingsAsync_ShouldReturnEmptyList_WhenUserHasNoBookings() {
         var (user, _) = await CreateUserAndRoomAsync();
         var service = new BookingService(_context);
 
-        await Assert.ThrowsAsync<BookingNotFoundException>(
-            () => service.GetUserBookingsAsync(user.Id, CancellationToken.None));
+        var result = await service.GetUserBookingsAsync(
+            user.Id,
+            CancellationToken.None);
+
+        Assert.NotNull(result);
+        Assert.Empty(result);
     }
 
     [Fact]

@@ -73,8 +73,7 @@ namespace KulcsRendszer.Services.Services {
             }
 
             if (!userExists.Bookings.Any()) {
-                throw new BookingNotFoundException(
-                    "No bookings found for this user.");
+                return Array.Empty<BookingDto>();
             }
 
             return userExists.Bookings.Select(ToDto).ToList();
