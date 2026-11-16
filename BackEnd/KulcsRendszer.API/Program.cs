@@ -44,7 +44,11 @@ namespace KulcsRendszer.API {
 
             //swagger gen
             builder.Services.AddControllers();
-            builder.Services.AddSingleton<IAuditLogService, AuditLogService>();
+            builder.Services.AddSingleton<AuditLogService>();
+            builder.Services.AddSingleton<IAuditLogService>(serviceProvider =>
+                serviceProvider.GetRequiredService<AuditLogService>());
+            builder.Services.AddHostedService(serviceProvider =>
+                serviceProvider.GetRequiredService<AuditLogService>());
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen(c => {
                 c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme {
