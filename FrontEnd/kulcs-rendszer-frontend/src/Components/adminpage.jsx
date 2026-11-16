@@ -96,6 +96,10 @@ export default function AdminPage() {
   const [permissionUsersError, setPermissionUsersError] = useState("");
   const [permissionKeyId, setPermissionKeyId] = useState("");
   const [permissionUserId, setPermissionUserId] = useState("");
+  const [issueTickets, setIssueTickets] = useState([]);
+  const [issueTicketsLoading, setIssueTicketsLoading] = useState(false);
+  const [issueTicketsError, setIssueTicketsError] = useState("");
+  const [issueTicketRefreshKey, setIssueTicketRefreshKey] = useState(0);
 
   const refreshStructure = async () => {
     const [buildingData, floorData] = await Promise.all([
@@ -327,6 +331,37 @@ export default function AdminPage() {
       active = false;
     };
   }, [bookingRefreshKey, section]);
+
+  useEffect(() => {
+    if (section !== "issue-tickets") return undefined;
+
+    let active = true;
+    const loadIssueTickets = async () => {
+      setIssueTicketsLoading(true);
+      setIssueTicketsError("");
+      try {
+        const result = await request("/issuetickets");
+        if (!Array.isArray(result)) {
+          throw new Error("A hibajegyek API-válasza érvénytelen formátumú.");
+        }
+        if (active) setIssueTickets(result);
+      } catch (loadError) {
+        if (active) {
+          setIssueTickets([]);
+          setIssueTicketsError(
+            `Nem sikerült betölteni a hibajegyeket: ${loadError.message}`,
+          );
+        }
+      } finally {
+        if (active) setIssueTicketsLoading(false);
+      }
+    };
+
+    loadIssueTickets();
+    return () => {
+      active = false;
+    };
+  }, [issueTicketRefreshKey, section]);
 
   useEffect(() => {
     let active = true;
@@ -1114,13 +1149,19 @@ export default function AdminPage() {
         </button>
         <button
           type="button"
+          className={section === "issue-tickets" ? "active" : ""}
+          onClick={() => setSection("issue-tickets")}
+        >
+          Hibajegyek
+        </button>
+        <button
+          type="button"
           className={section === "users" ? "active" : ""}
           onClick={() => setSection("users")}
         >
           Felhasználók
         </button>
       </nav>
-
       <ErrorToast message={error} onDismiss={() => setError("")} />
       <ErrorToast
         message={notice}
@@ -2277,6 +2318,89 @@ export default function AdminPage() {
                     )}
                   </article>
                 ))}
+            </div>
+          )}
+        </section>
+      )}
+
+      {section === "issue-tickets" && (
+        <section className="admin-panel">
+          <div className="admin-panel-heading">
+            <div>
+              <p className="admin-eyebrow">MEGHIBÁSODÁSOK</p>
+              <h2>Hibajegyek</h2>
+            </div>
+            <button
+              type="button"
+              className="admin-button admin-button-quiet"
+              onClick={() => setIssueTicketRefreshKey((current) => current + 1)}
+              disabled={issueTicketsLoading}
+            >
+              {issueTicketsLoading ? "Frissítés..." : "Frissítés"}
+            </button>
+          </div>
+
+          <p className="admin-note">
+            A portások, oktatók és vendégelőadók által bejelentett hibák. A
+            legutóbb felvett jegy áll elöl.
+          </p>
+
+          {issueTicketsError && (
+            <ErrorToast
+              message={issueTicketsError}
+              onDismiss={() => setIssueTicketsError("")}
+            />
+          )}
+
+          <p className="admin-count" role="status">
+            {issueTicketsLoading
+              ? "Hibajegyek betöltése..."
+              : `${issueTickets.length} hibajegy`}
+          </p>
+
+          {!issueTicketsLoading &&
+            issueTickets.length === 0 &&
+            !issueTicketsError && (
+              <p className="admin-empty">Nincs bejelentett hibajegy.</p>
+            )}
+
+          {issueTickets.length > 0 && (
+            <div className="booking-list">
+              {issueTickets.map((ticket) => {
+                const room = rooms.find((item) => item.id === ticket.roomId);
+                return (
+                  <article className="booking-item" key={ticket.id}>
+                    <div className="booking-item-heading">
+                      <h3>
+                        {room?.name || `Terem ${ticket.roomId}`}{" "}
+                        <small>#{ticket.id}</small>
+                      </h3>
+                      <span>
+                        {ticket.status === "Open" ? "Nyitott" : ticket.status}
+                      </span>
+                    </div>
+                    <p className="admin-booking-owner">
+                      Bejelentő: Felhasználó #{ticket.reporterId}
+                    </p>
+                    <dl>
+                      <div>
+                        <dt>Terem</dt>
+                        <dd>{ticket.roomId}</dd>
+                      </div>
+                      {ticket.keyId !== null && ticket.keyId !== undefined && (
+                        <div>
+                          <dt>Kulcs</dt>
+                          <dd>Kulcs #{ticket.keyId}</dd>
+                        </div>
+                      )}
+                      <div>
+                        <dt>Leírás</dt>
+                        <dd>{ticket.description}</dd>
+                      </div>
+                    </dl>
+                  </article>
+                );
+              })}
             </div>
           )}
         </section>

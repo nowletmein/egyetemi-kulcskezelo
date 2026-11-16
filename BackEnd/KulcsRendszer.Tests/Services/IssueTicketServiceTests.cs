@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using KulcsRendszer.DataContext.Context;
 using KulcsRendszer.DataContext.Dtos;
 using KulcsRendszer.DataContext.Entities;
+using KulcsRendszer.DataContext.Enums;
 using KulcsRendszer.Services.Exceptions;
 using KulcsRendszer.Services.Services;
 using Microsoft.EntityFrameworkCore;
@@ -157,5 +158,79 @@ public class IssueTicketServiceTests : IAsyncLifetime {
         Assert.Equal(2, result.Count);
         Assert.Equal("Második", result[0].Description);
     }
-}
 
+    [Fact]
+    public async Task GetByReporterAsync_ShouldReturnOnlyReportersTickets() {
+        var (user, room) = await CreateUserAndRoomAsync();
+        var otherUser = new User { Name = "Másik Felhasználó", Email = "masik@example.com" };
+        _context.Users.Add(otherUser);
+        await _context.SaveChangesAsync();
+        var service = new IssueTicketService(_context);
+        await service.CreateAsync(
+            new IssueTicketCreateDto { RoomId = room.Id, Description = "Saját" },
+            user.Id,
+            CancellationToken.None);
+        await service.CreateAsync(
+            new IssueTicketCreateDto { RoomId = room.Id, Description = "Másé" },
+            otherUser.Id,
+            CancellationToken.None);
+
+        var result = await service.GetByReporterAsync(user.Id, CancellationToken.None);
+
+        Assert.Single(result);
+        Assert.Equal("Saját", result[0].Description);
+    }
+
+    [Fact]
+    public async Task GetByReporterAsync_ShouldReturnEmptyList_WhenUserHasNoTickets() {
+        var (user, _) = await CreateUserAndRoomAsync();
+        var service = new IssueTicketService(_context);
+
+        var result = await service.GetByReporterAsync(user.Id, CancellationToken.None);
+
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public async Task UpdateStatusAsync_ShouldChangeStatus_WhenStatusIsValid() {
+        var (user, room) = await CreateUserAndRoomAsync();
+        var service = new IssueTicketService(_context);
+        var ticket = await service.CreateAsync(
+            new IssueTicketCreateDto { RoomId = room.Id, Description = "Hiba" },
+            user.Id,
+            CancellationToken.None);
+
+        var result = await service.UpdateStatusAsync(
+            ticket.Id,
+            IssueTicketStatuses.Resolved,
+            CancellationToken.None);
+
+        Assert.Equal(IssueTicketStatuses.Resolved, result.Status);
+        var ticketInDb = await _context.IssueTickets.FindAsync(ticket.Id);
+        Assert.Equal(IssueTicketStatuses.Resolved, ticketInDb!.Status);
+    }
+
+    [Fact]
+    public async Task UpdateStatusAsync_ShouldThrowArgumentException_WhenStatusIsInvalid() {
+        var (user, room) = await CreateUserAndRoomAsync();
+        var service = new IssueTicketService(_context);
+        var ticket = await service.CreateAsync(
+            new IssueTicketCreateDto { RoomId = room.Id, Description = "Hiba" },
+            user.Id,
+            CancellationToken.None);
+
+        await Assert.ThrowsAsync<ArgumentException>(
+            () => service.UpdateStatusAsync(ticket.Id, "Unknown", CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task UpdateStatusAsync_ShouldThrowIssueTicketNotFoundException_WhenTicketDoesNotExist() {
+        var service = new IssueTicketService(_context);
+
+        await Assert.ThrowsAsync<IssueTicketNotFoundException>(
+            () => service.UpdateStatusAsync(
+                99999,
+                IssueTicketStatuses.Closed,
+                CancellationToken.None));
+    }
+}

@@ -30,17 +30,29 @@ namespace KulcsRendszer.API.Controllers {
             return Ok(tickets);
         }
 
+        [HttpGet("mine")]
+        [ProducesResponseType(
+            typeof(IReadOnlyList<IssueTicketDto>),
+            StatusCodes.Status200OK)]
+        public async Task<ActionResult<IReadOnlyList<IssueTicketDto>>> GetMine(
+            CancellationToken cancellationToken) {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (!int.TryParse(userIdClaim?.Value, out var reporterId)) {
+                return Unauthorized();
+            }
+
+            var tickets = await _issueTicketService.GetByReporterAsync(
+                reporterId,
+                cancellationToken);
+
+            return Ok(tickets);
+        }
+
         [HttpPost]
-        [ProducesResponseType(typeof(IssueTicketDto), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(IssueTicketDto), StatusCodes.Status200OK)]
         public async Task<ActionResult<IssueTicketDto>> Create(
             [FromBody] IssueTicketCreateDto issueTicketCreateDto,
             CancellationToken cancellationToken) {
-            if (User.HasClaim(claim => claim.Type == ClaimTypes.Role) &&
-                !User.IsInRole("Portas") &&
-                !User.IsInRole("Oktato")) {
-                return Forbid();
-            }
-
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
             if (!int.TryParse(userIdClaim?.Value, out var reporterId)) {
                 return Unauthorized();
@@ -51,7 +63,22 @@ namespace KulcsRendszer.API.Controllers {
                 reporterId,
                 cancellationToken);
 
-            return StatusCode(StatusCodes.Status201Created, ticket);
+            return Ok(ticket);
+        }
+
+        [HttpPut("{id:int}/status")]
+        [Authorize(Roles = "Admin,Portas")]
+        [ProducesResponseType(typeof(IssueTicketDto), StatusCodes.Status200OK)]
+        public async Task<ActionResult<IssueTicketDto>> UpdateStatus(
+            int id,
+            [FromBody] IssueTicketStatusUpdateDto statusUpdateDto,
+            CancellationToken cancellationToken) {
+            var ticket = await _issueTicketService.UpdateStatusAsync(
+                id,
+                statusUpdateDto.Status,
+                cancellationToken);
+
+            return Ok(ticket);
         }
     }
 }

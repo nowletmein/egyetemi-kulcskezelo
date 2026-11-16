@@ -1219,7 +1219,9 @@
   font-weight: 600;
 }
 
-.admin-form input {
+.admin-form input,
+.admin-form select,
+.admin-form textarea {
   width: 100%;
   box-sizing: border-box;
   padding: 9px 10px;
@@ -1231,11 +1233,17 @@
   font-size: 13px;
 }
 
-.admin-form input:focus {
+.admin-form input:focus,
+.admin-form select:focus,
+.admin-form textarea:focus {
   border-color: #6d4aff;
   outline: 2px solid rgba(109, 74, 255, 0.15);
 }
 
+.admin-form textarea {
+  min-height: 96px;
+  resize: vertical;
+}
 .admin-form-actions {
   justify-content: flex-end;
   margin-top: 2px;

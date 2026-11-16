@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using KulcsRendszer.DataContext.Context;
 using KulcsRendszer.DataContext.Dtos;
 using KulcsRendszer.DataContext.Entities;
+using KulcsRendszer.DataContext.Enums;
 using KulcsRendszer.Services.Exceptions;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,15 +15,22 @@ namespace KulcsRendszer.Services.Services {
         Task<IReadOnlyList<IssueTicketDto>> GetAllAsync(
             CancellationToken cancellationToken);
 
+        Task<IReadOnlyList<IssueTicketDto>> GetByReporterAsync(
+            int reporterId,
+            CancellationToken cancellationToken);
+
         Task<IssueTicketDto> CreateAsync(
             IssueTicketCreateDto issueTicketCreateDto,
             int reporterId,
             CancellationToken cancellationToken);
+
+        Task<IssueTicketDto> UpdateStatusAsync(
+            int ticketId,
+            string status,
+            CancellationToken cancellationToken);
     }
 
     public class IssueTicketService : IIssueTicketService {
-        private const string OpenStatus = "Open";
-
         private readonly KulcsRendszerDbContext _context;
 
         public IssueTicketService(KulcsRendszerDbContext context) {
@@ -33,6 +41,24 @@ namespace KulcsRendszer.Services.Services {
             CancellationToken cancellationToken) {
             return await _context.IssueTickets
                 .AsNoTracking()
+                .OrderByDescending(ticket => ticket.Id)
+                .Select(ticket => new IssueTicketDto {
+                    Id = ticket.Id,
+                    KeyId = ticket.KeyId,
+                    RoomId = ticket.RoomId,
+                    ReporterId = ticket.ReporterId,
+                    Description = ticket.Description,
+                    Status = ticket.Status
+                })
+                .ToListAsync(cancellationToken);
+        }
+
+        public async Task<IReadOnlyList<IssueTicketDto>> GetByReporterAsync(
+            int reporterId,
+            CancellationToken cancellationToken) {
+            return await _context.IssueTickets
+                .AsNoTracking()
+                .Where(ticket => ticket.ReporterId == reporterId)
                 .OrderByDescending(ticket => ticket.Id)
                 .Select(ticket => new IssueTicketDto {
                     Id = ticket.Id,
@@ -89,10 +115,35 @@ namespace KulcsRendszer.Services.Services {
                 RoomId = issueTicketCreateDto.RoomId,
                 ReporterId = reporterId,
                 Description = issueTicketCreateDto.Description.Trim(),
-                Status = OpenStatus
+                Status = IssueTicketStatuses.Open
             };
 
             _context.IssueTickets.Add(ticket);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            return ToDto(ticket);
+        }
+
+        public async Task<IssueTicketDto> UpdateStatusAsync(
+            int ticketId,
+            string status,
+            CancellationToken cancellationToken) {
+            if (!IssueTicketStatuses.All.Contains(status)) {
+                throw new ArgumentException(
+                    "Invalid issue ticket status.");
+            }
+
+            var ticket = await _context.IssueTickets
+                .FirstOrDefaultAsync(
+                    item => item.Id == ticketId,
+                    cancellationToken);
+
+            if (ticket == null) {
+                throw new IssueTicketNotFoundException(
+                    "Issue ticket not found with this Id");
+            }
+
+            ticket.Status = status;
             await _context.SaveChangesAsync(cancellationToken);
 
             return ToDto(ticket);
