@@ -153,7 +153,7 @@ namespace KulcsRendszer.Controllers {
             var roles = await _userService.GetAllRoles();
             return Ok(roles);
         }
-        
+
 
         [HttpGet("notifications")]
         [Authorize]
@@ -165,7 +165,7 @@ namespace KulcsRendszer.Controllers {
             var Id = int.Parse(claim.Value);
             return Ok(await _userService.GetNotifications(Id));
         }
-        
+
         [HttpPost("{userId}/notifications")]
         [Authorize]
         public async Task<IActionResult> AddNotification(int userId, [FromBody] string message) {
