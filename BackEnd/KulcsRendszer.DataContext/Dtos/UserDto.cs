@@ -14,6 +14,7 @@ namespace KulcsRendszer.DataContext.Dtos {
         public string Name { get; set; } = "";
         public string Email { get; set; } = "";
 
+        public ICollection<NotificationItem> Notifications { get; set; } = new List<NotificationItem>();
         public ICollection<Booking> Bookings { get; set; } = new List<Booking>();
         public ICollection<KeyMovement> KeyMovements { get; set; } = new List<KeyMovement>();
         public ICollection<IssueTicket> ReportedTickets { get; set; } = new List<IssueTicket>();

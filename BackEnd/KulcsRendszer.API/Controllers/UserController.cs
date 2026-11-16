@@ -153,5 +153,37 @@ namespace KulcsRendszer.Controllers {
             var roles = await _userService.GetAllRoles();
             return Ok(roles);
         }
+        
+
+        [HttpGet("notifications")]
+        [Authorize]
+        public async Task<IActionResult> GetNotifications() {
+            var claim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (claim == null) {
+                return Unauthorized("User ID not found in token.");
+            }
+            var Id = int.Parse(claim.Value);
+            return Ok(await _userService.GetNotifications(Id));
+        }
+        
+        [HttpPost("{userId}/notifications")]
+        [Authorize]
+        public async Task<IActionResult> AddNotification(int userId, [FromBody] string message) {
+            if (string.IsNullOrWhiteSpace(message)) {
+                return BadRequest("Message cannot be empty.");
+            }
+            return Ok(await _userService.AddNotification(userId, message));
+        }
+
+        [HttpDelete("notifications")]
+        [Authorize]
+        public async Task<IActionResult> ClearNotifications() {
+            var claim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (claim == null) {
+                return Unauthorized("User ID not found in token.");
+            }
+            var id = int.Parse(claim.Value);
+            return Ok(await _userService.ClearNotifications(id));
+        }
     }
 }

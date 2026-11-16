@@ -34,6 +34,10 @@ namespace KulcsRendszer.Services.Services {
         Task<List<RoleDto>> GetAllRoles();
         Task<bool> DeleteRole(int roleId);
         Task<bool> RemoveRoleFromUser(int userId);
+        //Notification
+        Task<List<NotificationItem>> GetNotifications(int userId);
+        Task<bool> AddNotification(int userId, string message);
+        Task<bool> ClearNotifications(int userId);
     }
 
     public class UserService : IUserService {
@@ -53,7 +57,8 @@ namespace KulcsRendszer.Services.Services {
                 Bookings = user.Bookings ?? new List<Booking>(),
                 KeyMovements = user.KeyMovements ?? new List<KeyMovement>(),
                 ReportedTickets = user.ReportedTickets ?? new List<IssueTicket>(),
-                OrderedMaintenances = user.OrderedMaintenances ?? new List<Maintenance>()
+                OrderedMaintenances = user.OrderedMaintenances ?? new List<Maintenance>(),
+                Notifications = user.Notifications ?? new List<NotificationItem>()
             };
         }
         private User MapToUser(UserCreateDto userCreateDto) {
@@ -282,6 +287,56 @@ namespace KulcsRendszer.Services.Services {
             }
             user.Role = null;
             user.RoleId = null;
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        //Notification
+        public async Task<List<NotificationItem>> GetNotifications(int userId) {
+            var user = await _context.Users
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Id == userId);
+
+            if (user == null) {
+                throw new UserNotFoundException("User not found with this Id: " + userId);
+            }
+
+            return user.Notifications
+                .OrderByDescending(n => n.CreatedAt)
+                .ToList();
+        }
+
+        public async Task<bool> AddNotification(int userId, string message) {
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+
+            if (user == null) {
+                throw new UserNotFoundException("User not found with this Id: " + userId);
+            }
+
+            user.Notifications.Add(new NotificationItem {
+                Message = message,
+                CreatedAt = DateTime.UtcNow
+            });
+
+            if (user.Notifications.Count > 30) {
+                var oldest = user.Notifications
+                    .OrderBy(n => n.CreatedAt)
+                    .First();
+                user.Notifications.Remove(oldest);
+            }
+
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<bool> ClearNotifications(int userId) {
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+
+            if (user == null) {
+                throw new UserNotFoundException("User not found with this Id: " + userId);
+            }
+
+            user.Notifications.Clear();
             await _context.SaveChangesAsync();
             return true;
         }
