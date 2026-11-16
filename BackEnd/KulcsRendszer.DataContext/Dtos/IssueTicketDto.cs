@@ -5,6 +5,10 @@ namespace KulcsRendszer.DataContext.Dtos {
         public string Description { get; set; } = "";
     }
 
+    public class IssueTicketStatusUpdateDto {
+        public string Status { get; set; } = "";
+    }
+
     public class IssueTicketDto {
         public int Id { get; set; }
         public int? KeyId { get; set; }

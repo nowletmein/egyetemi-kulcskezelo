@@ -49,16 +49,10 @@ namespace KulcsRendszer.API.Controllers {
         }
 
         [HttpPost]
-        [ProducesResponseType(typeof(IssueTicketDto), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(IssueTicketDto), StatusCodes.Status200OK)]
         public async Task<ActionResult<IssueTicketDto>> Create(
             [FromBody] IssueTicketCreateDto issueTicketCreateDto,
             CancellationToken cancellationToken) {
-            if (User.HasClaim(claim => claim.Type == ClaimTypes.Role) &&
-                !User.IsInRole("Portas") &&
-                !User.IsInRole("Oktato")) {
-                return Forbid();
-            }
-
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
             if (!int.TryParse(userIdClaim?.Value, out var reporterId)) {
                 return Unauthorized();
@@ -69,7 +63,22 @@ namespace KulcsRendszer.API.Controllers {
                 reporterId,
                 cancellationToken);
 
-            return StatusCode(StatusCodes.Status201Created, ticket);
+            return Ok(ticket);
+        }
+
+        [HttpPut("{id:int}/status")]
+        [Authorize(Roles = "Admin,Portas")]
+        [ProducesResponseType(typeof(IssueTicketDto), StatusCodes.Status200OK)]
+        public async Task<ActionResult<IssueTicketDto>> UpdateStatus(
+            int id,
+            [FromBody] IssueTicketStatusUpdateDto statusUpdateDto,
+            CancellationToken cancellationToken) {
+            var ticket = await _issueTicketService.UpdateStatusAsync(
+                id,
+                statusUpdateDto.Status,
+                cancellationToken);
+
+            return Ok(ticket);
         }
     }
 }

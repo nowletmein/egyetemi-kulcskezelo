@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using KulcsRendszer.DataContext.Context;
 using KulcsRendszer.DataContext.Dtos;
 using KulcsRendszer.DataContext.Entities;
+using KulcsRendszer.DataContext.Enums;
 using KulcsRendszer.Services.Exceptions;
 using Microsoft.EntityFrameworkCore;
 
@@ -22,11 +23,14 @@ namespace KulcsRendszer.Services.Services {
             IssueTicketCreateDto issueTicketCreateDto,
             int reporterId,
             CancellationToken cancellationToken);
+
+        Task<IssueTicketDto> UpdateStatusAsync(
+            int ticketId,
+            string status,
+            CancellationToken cancellationToken);
     }
 
     public class IssueTicketService : IIssueTicketService {
-        private const string OpenStatus = "Open";
-
         private readonly KulcsRendszerDbContext _context;
 
         public IssueTicketService(KulcsRendszerDbContext context) {
@@ -111,10 +115,35 @@ namespace KulcsRendszer.Services.Services {
                 RoomId = issueTicketCreateDto.RoomId,
                 ReporterId = reporterId,
                 Description = issueTicketCreateDto.Description.Trim(),
-                Status = OpenStatus
+                Status = IssueTicketStatuses.Open
             };
 
             _context.IssueTickets.Add(ticket);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            return ToDto(ticket);
+        }
+
+        public async Task<IssueTicketDto> UpdateStatusAsync(
+            int ticketId,
+            string status,
+            CancellationToken cancellationToken) {
+            if (!IssueTicketStatuses.All.Contains(status)) {
+                throw new ArgumentException(
+                    "Invalid issue ticket status.");
+            }
+
+            var ticket = await _context.IssueTickets
+                .FirstOrDefaultAsync(
+                    item => item.Id == ticketId,
+                    cancellationToken);
+
+            if (ticket == null) {
+                throw new IssueTicketNotFoundException(
+                    "Issue ticket not found with this Id");
+            }
+
+            ticket.Status = status;
             await _context.SaveChangesAsync(cancellationToken);
 
             return ToDto(ticket);
