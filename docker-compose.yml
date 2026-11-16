@@ -24,6 +24,9 @@ services:
       - ConnectionStrings__DefaultConnection=Server=database,1433;Database=KulcsRendszerDb;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;
     volumes:
       - audit_log_data:/app/App_Data
+      - NoShow__GracePeriodMinutes=15
+      - TZ=Europe/Budapest
+
     depends_on:
       - database
 
