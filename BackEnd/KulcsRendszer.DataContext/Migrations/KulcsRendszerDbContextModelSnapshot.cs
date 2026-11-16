@@ -560,6 +560,36 @@ namespace KulcsRendszer.DataContext.Migrations
                         .HasForeignKey("RoleId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.OwnsMany("KulcsRendszer.DataContext.Entities.NotificationItem", "Notifications", b1 =>
+                        {
+                            b1.Property<int>("UserId")
+                                .HasColumnType("int");
+
+                            b1.Property<int>("__synthesizedOrdinal")
+                                .ValueGeneratedOnAdd()
+                                .HasColumnType("int");
+
+                            b1.Property<DateTime>("CreatedAt")
+                                .HasColumnType("datetime2");
+
+                            b1.Property<string>("Message")
+                                .IsRequired()
+                                .HasColumnType("nvarchar(max)");
+
+                            b1.HasKey("UserId", "__synthesizedOrdinal");
+
+                            b1.ToTable("Users");
+
+                            b1
+                                .ToJson("Notifications")
+                                .HasColumnType("nvarchar(max)");
+
+                            b1.WithOwner()
+                                .HasForeignKey("UserId");
+                        });
+
+                    b.Navigation("Notifications");
+
                     b.Navigation("Role");
                 });
 

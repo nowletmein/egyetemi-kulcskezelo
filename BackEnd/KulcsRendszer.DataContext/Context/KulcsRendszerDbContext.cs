@@ -157,6 +157,11 @@ namespace KulcsRendszer.DataContext.Context {
                 new Role { Id = 3, Name = UserRole.Igazgato },
                 new Role { Id = 4, Name = UserRole.Oktato }
             );
+            
+            modelBuilder.Entity<User>()
+            .OwnsMany(user => user.Notifications, builder => {
+                builder.ToJson();
+            });
         }
     }
 }
