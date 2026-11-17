@@ -4,6 +4,8 @@
   --bg: #fff;
   --border: #e5e4e7;
   --code-bg: #f4f3ec;
+  --surface: #ffffff;
+  --surface-raised: #f7f7f9;
   --accent: #aa3bff;
   --accent-bg: rgba(170, 59, 255, 0.1);
   --accent-border: rgba(170, 59, 255, 0.5);
@@ -37,6 +39,8 @@
     --bg: #16171d;
     --border: #2e303a;
     --code-bg: #1f2028;
+    --surface: #1e1f27;
+    --surface-raised: #262731;
     --accent: #c084fc;
     --accent-bg: rgba(192, 132, 252, 0.15);
     --accent-border: rgba(192, 132, 252, 0.5);
