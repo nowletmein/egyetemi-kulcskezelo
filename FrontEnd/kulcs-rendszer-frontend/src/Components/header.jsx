@@ -2,6 +2,15 @@ import { useEffect, useRef, useState } from "react";
 import { request } from "../api.js";
 import ErrorToast from "./errorToast.jsx";
 
+function getMonogram(name, email) {
+  const parts = (name || "").trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return (email || "?").charAt(0).toUpperCase();
+
+  const first = parts[0].charAt(0);
+  const last = parts.length > 1 ? parts[parts.length - 1].charAt(0) : "";
+  return (first + last).toLocaleUpperCase("hu");
+}
+
 export default function Header({
   user,
   onLogout,
@@ -273,7 +282,9 @@ export default function Header({
             style={{ cursor: "pointer" }}
             title="Saját profil"
           >
-            <div className="avatar"></div>
+            <div className="avatar" aria-hidden="true">
+              {getMonogram(user.name, user.email)}
+            </div>
           </div>
 
           <button className="logout-btn" onClick={onLogout}>
