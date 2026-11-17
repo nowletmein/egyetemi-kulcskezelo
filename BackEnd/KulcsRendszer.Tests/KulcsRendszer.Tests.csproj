@@ -21,6 +21,7 @@
     <Using Include="Xunit" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\KulcsRendszer.API\KulcsRendszer.API.csproj" />
     <ProjectReference Include="..\KulcsRendszer.DataContext\KulcsRendszer.DataContext.csproj" />
     <ProjectReference Include="..\KulcsRendszer.Services\KulcsRendszer.Services.csproj" />
   </ItemGroup>

@@ -147,6 +147,15 @@ public class RBACTests {
         Assert.Contains("claim.Type == ClaimTypes.Role", source);
     }
 
+    [Fact]
+    public async Task AuditLogController_RequiresIgazgatoRole() {
+        var source = await LoadControllerSourceAsync("AuditLogController");
+
+        Assert.Matches(
+            @"\[Authorize\(Roles = ""Igazgato""\)\]\s*public\s+class\s+AuditLogController",
+            source);
+    }
+
     private static async Task AssertActionHasNoRoleRequirementAsync(
         string actionName,
         string controllerName = "UserController") {
