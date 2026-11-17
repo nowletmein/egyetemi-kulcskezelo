@@ -79,6 +79,14 @@ namespace KulcsRendszer.Services.Exceptions {
         public RoleAlreadyExistsException(string message) : base(message) { }
     }
 
+    public class MaintenanceNotFoundException : Exception, INotFoundException {
+        public MaintenanceNotFoundException(string message) : base(message) { }
+    }
+
+    public class MaintenanceAlreadyExistsException : Exception, IAlreadyExistsException {
+        public MaintenanceAlreadyExistsException(string message) : base(message) { }
+    }
+
     public class ScreeningNotFoundException : Exception, INotFoundException {
         public ScreeningNotFoundException(string message) : base(message) { }
     }

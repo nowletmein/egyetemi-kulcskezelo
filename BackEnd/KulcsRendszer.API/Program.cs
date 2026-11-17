@@ -82,6 +82,7 @@ namespace KulcsRendszer.API {
             builder.Services.AddScoped<IKeyService, KeyService>();
             builder.Services.AddScoped<INoShowService, NoShowService>();
             builder.Services.AddScoped<IIssueTicketService, IssueTicketService>();
+            builder.Services.AddScoped<IMaintenanceService, MaintenanceService>();
             builder.Services.AddHostedService<NoShowBackgroundService>();
             //database service
             //builder.Services.AddDbContext<KulcsRendszerDbContext>(options =>
