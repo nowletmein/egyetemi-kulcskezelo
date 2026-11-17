@@ -148,6 +148,96 @@ public class RBACTests {
     }
 
     [Fact]
+    public async Task BookingGetAll_RequiresOnlyAdminOrPortas() {
+        await AssertActionHasExactRolesAsync(
+            "GetAllBookings",
+            new[] { "Admin", "Portas" },
+            "BookingController");
+    }
+
+    [Fact]
+    public async Task KeyController_RequiresAuthenticationByDefault() {
+        var source = await LoadControllerSourceAsync("KeyController");
+
+        Assert.Matches(
+            @"\[Authorize\]\s*public\s+class\s+KeyController",
+            source);
+    }
+
+    [Fact]
+    public async Task KeyQueries_RequireOnlyAdminOrPortas() {
+        await AssertActionHasExactRolesAsync(
+            "GetAll",
+            new[] { "Admin", "Portas" },
+            "KeyController");
+        await AssertActionHasExactRolesAsync(
+            "Get",
+            new[] { "Admin", "Portas" },
+            "KeyController");
+    }
+
+    [Fact]
+    public async Task KeyMutationsAndMasterKeyPermissions_RequireOnlyAdmin() {
+        await AssertActionHasOnlyRoleAsync("Create", "Admin", "Portas", "KeyController");
+        await AssertActionHasOnlyRoleAsync("Update", "Admin", "Portas", "KeyController");
+        await AssertActionHasOnlyRoleAsync("Delete", "Admin", "Portas", "KeyController");
+        await AssertActionHasOnlyRoleAsync(
+            "GrantMasterKeyPermission",
+            "Admin",
+            "Portas",
+            "KeyController");
+        await AssertActionHasOnlyRoleAsync(
+            "RevokeMasterKeyPermission",
+            "Admin",
+            "Portas",
+            "KeyController");
+    }
+
+    [Fact]
+    public async Task IssueTicketController_RequiresAuthenticationByDefault() {
+        var source = await LoadControllerSourceAsync("IssueTicketController");
+
+        Assert.Matches(
+            @"\[Authorize\]\s*public\s+class\s+IssueTicketController",
+            source);
+    }
+
+    [Fact]
+    public async Task IssueTicketAdministration_RequiresOnlyAdminOrPortas() {
+        await AssertActionHasExactRolesAsync(
+            "GetAll",
+            new[] { "Admin", "Portas" },
+            "IssueTicketController");
+        await AssertActionHasExactRolesAsync(
+            "UpdateStatus",
+            new[] { "Admin", "Portas" },
+            "IssueTicketController");
+    }
+
+    [Fact]
+    public async Task RoomController_RequiresAuthenticationByDefault() {
+        var source = await LoadControllerSourceAsync("RoomController");
+
+        Assert.Matches(
+            @"\[Authorize\]\s*public\s+class\s+RoomController",
+            source);
+    }
+
+    [Fact]
+    public async Task RoomMutations_RequireOnlyAdmin() {
+        await AssertActionHasOnlyRoleAsync("Create", "Admin", "Portas", "RoomController");
+        await AssertActionHasOnlyRoleAsync("Update", "Admin", "Portas", "RoomController");
+        await AssertActionHasOnlyRoleAsync("Delete", "Admin", "Portas", "RoomController");
+    }
+
+    [Fact]
+    public async Task RoomQueries_AllowAnyAuthenticatedRole() {
+        await AssertActionHasNoRoleRequirementAsync("GetAll", "RoomController");
+        await AssertActionHasNoRoleRequirementAsync("Get", "RoomController");
+        await AssertActionHasNoRoleRequirementAsync("GetInfo", "RoomController");
+    }
+
+    [Fact]
     public async Task AuditLogController_RequiresIgazgatoRole() {
         var source = await LoadControllerSourceAsync("AuditLogController");
 
@@ -197,6 +287,17 @@ public class RBACTests {
 
         Assert.Equal(new[] { allowedRole }, roles);
         Assert.DoesNotContain(rejectedRole, roles);
+    }
+
+    private static async Task AssertActionHasExactRolesAsync(
+        string actionName,
+        IEnumerable<string> expectedRoles,
+        string controllerName) {
+        var roles = await GetActionRolesAsync(actionName, controllerName);
+
+        Assert.Equal(
+            expectedRoles.OrderBy(role => role),
+            roles);
     }
 
     private static async Task<string[]> GetActionRolesAsync(
