@@ -1889,6 +1889,7 @@
   padding: 13px;
   border: 1px solid var(--border);
   border-radius: 9px;
+  background: var(--surface-raised);
 }
 
 .receptionist-booking-heading {
@@ -1947,6 +1948,7 @@
   padding: 11px;
   border: 1px solid var(--border);
   border-radius: 9px;
+  background: var(--surface-raised);
 }
 
 .receptionist-room-mark {
