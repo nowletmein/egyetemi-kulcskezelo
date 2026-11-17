@@ -156,6 +156,15 @@ public class RBACTests {
             source);
     }
 
+    [Fact]
+    public async Task MaintenanceController_RequiresAdminRole() {
+        var source = await LoadControllerSourceAsync("MaintenanceController");
+
+        Assert.Matches(
+            @"\[Authorize\(Roles = ""Admin""\)\]\s*public\s+class\s+MaintenanceController",
+            source);
+    }
+
     private static async Task AssertActionHasNoRoleRequirementAsync(
         string actionName,
         string controllerName = "UserController") {

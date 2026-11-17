@@ -100,6 +100,21 @@ export default function AdminPage() {
   const [issueTicketsLoading, setIssueTicketsLoading] = useState(false);
   const [issueTicketsError, setIssueTicketsError] = useState("");
   const [issueTicketRefreshKey, setIssueTicketRefreshKey] = useState(0);
+  const [maintenances, setMaintenances] = useState([]);
+  const [maintenancesLoading, setMaintenancesLoading] = useState(false);
+  const [maintenanceError, setMaintenanceError] = useState("");
+  const [maintenanceNotice, setMaintenanceNotice] = useState("");
+  const [maintenanceRefreshKey, setMaintenanceRefreshKey] = useState(0);
+  const [maintenanceForm, setMaintenanceForm] = useState({
+    roomId: "",
+    startTime: "",
+    endTime: "",
+  });
+  const [savingMaintenance, setSavingMaintenance] = useState(false);
+  const [affectedBookings, setAffectedBookings] = useState([]);
+  const [deletingMaintenanceId, setDeletingMaintenanceId] = useState(null);
+  const [deletingAffectedBookingId, setDeletingAffectedBookingId] =
+    useState(null);
 
   const refreshStructure = async () => {
     const [buildingData, floorData] = await Promise.all([
@@ -362,6 +377,39 @@ export default function AdminPage() {
       active = false;
     };
   }, [issueTicketRefreshKey, section]);
+
+  useEffect(() => {
+    if (section !== "maintenance") return undefined;
+
+    let active = true;
+    const loadMaintenances = async () => {
+      setMaintenancesLoading(true);
+      setMaintenanceError("");
+      try {
+        const result = await request("/maintenance");
+        if (!Array.isArray(result)) {
+          throw new Error(
+            "A karbantartások API-válasza érvénytelen formátumú.",
+          );
+        }
+        if (active) setMaintenances(result);
+      } catch (loadError) {
+        if (active) {
+          setMaintenances([]);
+          setMaintenanceError(
+            `Nem sikerült betölteni a karbantartásokat: ${loadError.message}`,
+          );
+        }
+      } finally {
+        if (active) setMaintenancesLoading(false);
+      }
+    };
+
+    loadMaintenances();
+    return () => {
+      active = false;
+    };
+  }, [maintenanceRefreshKey, section]);
 
   useEffect(() => {
     let active = true;
@@ -707,6 +755,98 @@ export default function AdminPage() {
       );
     } finally {
       setDeletingBookingId(null);
+    }
+  };
+
+  const saveMaintenance = async (event) => {
+    event.preventDefault();
+    setSavingMaintenance(true);
+    setMaintenanceError("");
+    setMaintenanceNotice("");
+    setAffectedBookings([]);
+    try {
+      const result = await request(
+        "/maintenance",
+        jsonOptions("POST", {
+          roomId: maintenanceForm.roomId,
+          startTime: maintenanceForm.startTime,
+          endTime: maintenanceForm.endTime,
+        }),
+      );
+      const conflicts = Array.isArray(result?.affectedBookings)
+        ? result.affectedBookings
+        : [];
+      setAffectedBookings(conflicts);
+      setMaintenanceForm({ roomId: "", startTime: "", endTime: "" });
+      setMaintenanceNotice(
+        conflicts.length > 0
+          ? `A karbantartás rögzítve, de ${conflicts.length} foglalás ütközik vele. Döntsd el, mi legyen velük.`
+          : "A karbantartás rögzítve.",
+      );
+      setMaintenanceRefreshKey((current) => current + 1);
+    } catch (saveError) {
+      setMaintenanceError(
+        `A karbantartás rögzítése nem sikerült: ${saveError.message}`,
+      );
+    } finally {
+      setSavingMaintenance(false);
+    }
+  };
+
+  const deleteMaintenance = async (maintenance) => {
+    if (
+      !window.confirm(
+        `Biztosan törlöd a(z) ${maintenance.roomId} terem karbantartását?`,
+      )
+    ) {
+      return;
+    }
+
+    setDeletingMaintenanceId(maintenance.id);
+    setMaintenanceError("");
+    setMaintenanceNotice("");
+    try {
+      await request(`/maintenance/${maintenance.id}`, { method: "DELETE" });
+      setMaintenances((current) =>
+        current.filter((item) => item.id !== maintenance.id),
+      );
+      setMaintenanceNotice("A karbantartás törölve.");
+    } catch (deleteError) {
+      setMaintenanceError(
+        `A karbantartás törlése nem sikerült: ${deleteError.message}`,
+      );
+    } finally {
+      setDeletingMaintenanceId(null);
+    }
+  };
+
+  const deleteAffectedBooking = async (booking) => {
+    if (
+      !window.confirm(
+        `Biztosan törlöd a(z) ${booking.userId}. felhasználó foglalását ` +
+          `(${booking.id})?`,
+      )
+    ) {
+      return;
+    }
+
+    setDeletingAffectedBookingId(booking.id);
+    setMaintenanceError("");
+    setMaintenanceNotice("");
+    try {
+      await request(`/bookings?bookingId=${encodeURIComponent(booking.id)}`, {
+        method: "DELETE",
+      });
+      setAffectedBookings((current) =>
+        current.filter((item) => item.id !== booking.id),
+      );
+      setMaintenanceNotice("Az ütköző foglalás törölve.");
+    } catch (deleteError) {
+      setMaintenanceError(
+        `A foglalás törlése nem sikerült: ${deleteError.message}`,
+      );
+    } finally {
+      setDeletingAffectedBookingId(null);
     }
   };
 
@@ -2407,18 +2547,203 @@ export default function AdminPage() {
       )}
 
       {section === "maintenance" && (
-        <section className="admin-panel admin-unavailable">
-          <span className="admin-unavailable-icon" aria-hidden="true">
-            API
-          </span>
-          <div>
-            <p className="admin-eyebrow">TERMEK LEZÁRÁSA</p>
-            <h2>Karbantartási idősávok</h2>
-            <p>
-              Karbantartás rögzítésére és a foglalások lekérdezésére jelenleg
-              nincs backend-végpont.
-            </p>
+        <section className="admin-panel">
+          <div className="admin-panel-heading">
+            <div>
+              <p className="admin-eyebrow">TERMEK LEZÁRÁSA</p>
+              <h2>Karbantartási idősávok</h2>
+            </div>
+            <button
+              type="button"
+              className="admin-button admin-button-quiet"
+              onClick={() => setMaintenanceRefreshKey((current) => current + 1)}
+              disabled={maintenancesLoading}
+            >
+              {maintenancesLoading ? "Frissítés..." : "Frissítés"}
+            </button>
           </div>
+
+          <p className="admin-note">
+            Karbantartás alatt a terem nem foglalható. Ha az idősáv meglévő
+            foglalással ütközik, a rendszer felsorolja az érintett foglalásokat,
+            hogy dönthess a törlésükről vagy áthelyezésükről.
+          </p>
+
+          {maintenanceError && (
+            <ErrorToast
+              message={maintenanceError}
+              onDismiss={() => setMaintenanceError("")}
+            />
+          )}
+          {maintenanceNotice && (
+            <ErrorToast
+              message={maintenanceNotice}
+              onDismiss={() => setMaintenanceNotice("")}
+              variant="success"
+            />
+          )}
+
+          <form className="admin-form" onSubmit={saveMaintenance}>
+            <h3>Új karbantartási idősáv</h3>
+            <label>
+              Terem
+              <select
+                required
+                value={maintenanceForm.roomId}
+                onChange={(event) =>
+                  setMaintenanceForm({
+                    ...maintenanceForm,
+                    roomId: event.target.value,
+                  })
+                }
+                disabled={savingMaintenance || roomsLoading}
+              >
+                <option value="">Válassz termet</option>
+                {rooms.map((room) => (
+                  <option key={room.id} value={room.id}>
+                    {room.name} ({room.id}) — {room.building}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Kezdés
+              <input
+                type="datetime-local"
+                required
+                value={maintenanceForm.startTime}
+                onChange={(event) =>
+                  setMaintenanceForm({
+                    ...maintenanceForm,
+                    startTime: event.target.value,
+                  })
+                }
+                disabled={savingMaintenance}
+              />
+            </label>
+            <label>
+              Befejezés
+              <input
+                type="datetime-local"
+                required
+                min={maintenanceForm.startTime || undefined}
+                value={maintenanceForm.endTime}
+                onChange={(event) =>
+                  setMaintenanceForm({
+                    ...maintenanceForm,
+                    endTime: event.target.value,
+                  })
+                }
+                disabled={savingMaintenance}
+              />
+            </label>
+            <div className="admin-form-actions">
+              <button
+                type="submit"
+                className="admin-button admin-button-primary"
+                disabled={savingMaintenance}
+              >
+                {savingMaintenance ? "Rögzítés..." : "Karbantartás rögzítése"}
+              </button>
+            </div>
+          </form>
+
+          {affectedBookings.length > 0 && (
+            <>
+              <h3>Ütköző foglalások ({affectedBookings.length})</h3>
+              <div className="booking-list">
+                {affectedBookings.map((booking) => {
+                  const room = rooms.find((item) => item.id === booking.roomId);
+                  return (
+                    <article className="booking-item" key={booking.id}>
+                      <div className="booking-item-heading">
+                        <h3>
+                          {room?.name || `Terem ${booking.roomId}`}{" "}
+                          <small>#{booking.id}</small>
+                        </h3>
+                        <span>{booking.status}</span>
+                      </div>
+                      <p className="admin-booking-owner">
+                        Felhasználó #{booking.userId}
+                      </p>
+                      <dl>
+                        <div>
+                          <dt>Kezdés</dt>
+                          <dd>{formatBookingDate(booking.startTime)}</dd>
+                        </div>
+                        <div>
+                          <dt>Befejezés</dt>
+                          <dd>{formatBookingDate(booking.endTime)}</dd>
+                        </div>
+                      </dl>
+                      <button
+                        type="button"
+                        className="admin-button admin-button-danger"
+                        onClick={() => deleteAffectedBooking(booking)}
+                        disabled={deletingAffectedBookingId === booking.id}
+                      >
+                        {deletingAffectedBookingId === booking.id
+                          ? "Törlés..."
+                          : "Foglalás törlése"}
+                      </button>
+                    </article>
+                  );
+                })}
+              </div>
+            </>
+          )}
+
+          <p className="admin-count" role="status">
+            {maintenancesLoading
+              ? "Karbantartások betöltése..."
+              : `${maintenances.length} karbantartás`}
+          </p>
+
+          {!maintenancesLoading &&
+            maintenances.length === 0 &&
+            !maintenanceError && (
+              <p className="admin-empty">Nincs rögzített karbantartás.</p>
+            )}
+
+          {maintenances.length > 0 && (
+            <div className="admin-record-list">
+              {maintenances.map((maintenance) => {
+                const room = rooms.find(
+                  (item) => item.id === maintenance.roomId,
+                );
+                return (
+                  <article className="admin-record" key={maintenance.id}>
+                    <div className="admin-record-select">
+                      <span className="admin-record-icon" aria-hidden="true">
+                        KB
+                      </span>
+                      <span>
+                        <strong>
+                          {room?.name || `Terem ${maintenance.roomId}`}
+                        </strong>
+                        <small>
+                          {formatBookingDate(maintenance.startTime)} –{" "}
+                          {formatBookingDate(maintenance.endTime)}
+                        </small>
+                      </span>
+                    </div>
+                    <div className="admin-record-actions">
+                      <button
+                        type="button"
+                        className="admin-button admin-button-danger"
+                        onClick={() => deleteMaintenance(maintenance)}
+                        disabled={deletingMaintenanceId === maintenance.id}
+                      >
+                        {deletingMaintenanceId === maintenance.id
+                          ? "Törlés..."
+                          : "Törlés"}
+                      </button>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          )}
         </section>
       )}
 
