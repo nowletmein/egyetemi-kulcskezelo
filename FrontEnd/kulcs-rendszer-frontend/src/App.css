@@ -1355,7 +1355,7 @@
   padding: 16px;
   border: 1px solid var(--border);
   border-radius: 10px;
-  background: color-mix(in srgb, var(--code-bg) 55%, var(--bg));
+  background: var(--surface-raised);
 }
 
 .admin-form h3 {
