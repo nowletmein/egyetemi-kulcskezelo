@@ -102,6 +102,7 @@ function App() {
     <div className="app-shell">
       <div id="error-toast-region" className="error-toast-region" />
       <Header
+        key={user?.id ?? "anonymous"}
         user={user}
         onLogout={handleLogout}
         currentPage={currentPage}
