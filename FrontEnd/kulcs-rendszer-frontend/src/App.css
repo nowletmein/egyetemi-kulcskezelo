@@ -1578,6 +1578,17 @@
   background: #521d2a;
 }
 
+@media (prefers-color-scheme: dark) {
+  .admin-record-actions button {
+    border-color: #3a3b4a;
+    background: #30313d;
+  }
+
+  .admin-record-actions .admin-danger-link {
+    border-color: #5c2a36;
+  }
+}
+
 .admin-building-code,
 .admin-note {
   color: var(--text);
@@ -1661,6 +1672,13 @@
   box-shadow: 0 4px 20px -12px rgba(20, 12, 45, 0.25);
   color: #21183a;
 }
+@media (prefers-color-scheme: dark) {
+  .admin-note {
+    border-color: var(--accent-border);
+    background: var(--accent-bg);
+    color: var(--text-h);
+  }
+}
 
 .admin-booking-user-field {
   max-width: 560px;
@@ -1721,6 +1739,23 @@
   border-color: var(--accent);
   background: #e9ddff;
   box-shadow: inset 3px 0 var(--accent);
+}
+
+@media (prefers-color-scheme: dark) {
+  .admin-record.selected,
+  .admin-room-record.selected {
+    background: var(--accent-bg);
+  }
+
+  .admin-record.selected .admin-record-select,
+  .admin-room-record.selected .admin-room-select {
+    color: var(--text-h);
+  }
+
+  .admin-record.selected .admin-record-select small,
+  .admin-room-record.selected .admin-room-select small {
+    color: var(--text);
+  }
 }
 
 .admin-room-select {
@@ -2214,7 +2249,7 @@
   padding: 10px 12px;
   border: 1px solid var(--border);
   border-radius: 8px;
-  background: var(--bg);
+  background: var(--surface-raised);
   color: var(--text-h);
   text-align: left;
   cursor: pointer;
@@ -2278,6 +2313,13 @@
 .admin-user-role.unassigned {
   background: #fff7ed;
   color: #c2410c;
+}
+
+@media (prefers-color-scheme: dark) {
+  .admin-user-role {
+    background: var(--accent-bg);
+    color: var(--accent);
+  }
 }
 
 .admin-user-lookup {
