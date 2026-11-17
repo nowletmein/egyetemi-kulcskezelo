@@ -46,6 +46,12 @@
   background: #f0fdf4;
   color: #166534;
 }
+.error-toast-error {
+  border-color: #fecaca;
+  border-left-color: #dc2626;
+  background: #fef2f2;
+  color: #991b1b;
+}
 
 .error-toast-inline {
   width: 100%;
@@ -78,6 +84,15 @@
 
 .error-toast-success .error-toast-progress > span {
   background: #16a34a;
+}
+
+
+.error-toast-error .error-toast-progress {
+  background: rgba(220, 38, 38, 0.14);
+}
+
+.error-toast-error .error-toast-progress > span {
+  background: #dc2626;
 }
 
 .error-toast button {
