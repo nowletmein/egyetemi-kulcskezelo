@@ -46,22 +46,11 @@ namespace KulcsRendszer.Services.Services {
 
         public async Task<IReadOnlyList<BookingDto>> GetAllBookingsAsync(
             CancellationToken cancellationToken) {
-            return await _context.Bookings
-                .AsNoTracking()
-                .OrderBy(booking => booking.StartTime)
-                .Select(booking => new BookingDto {
-                    Id = booking.Id,
-                    UserId = booking.UserId,
-                    RoomId = booking.RoomId,
-                    StartTime = booking.StartTime,
-                    EndTime = booking.EndTime,
-                    Status = booking.Status,
-                    SpecialRequest = booking.SpecialRequest
-                })
-                .ToListAsync(cancellationToken);
             var bookings = await _context.Bookings
-                .AsNoTracking()
-                .ToListAsync(cancellationToken);
+        .AsNoTracking()
+        .Include(booking => booking.KeyMovements)
+        .OrderBy(booking => booking.StartTime)
+        .ToListAsync(cancellationToken);
 
             return bookings.Select(ToDto).ToList();
         }
@@ -154,9 +143,10 @@ namespace KulcsRendszer.Services.Services {
         }
 
         public async Task<bool> DeleteUserBookingAsync(
-            int bookingId,
-            CancellationToken cancellationToken) {
+        int bookingId,
+        CancellationToken cancellationToken) {
             var booking = await _context.Bookings
+                .Include(b => b.KeyMovements)
                 .FirstOrDefaultAsync(
                     item => item.Id == bookingId,
                     cancellationToken);
@@ -164,6 +154,10 @@ namespace KulcsRendszer.Services.Services {
             if (booking == null) {
                 throw new BookingNotFoundException(
                     "Booking not found for this user.");
+            }
+
+            if (booking.KeyMovements != null && booking.KeyMovements.Any()) {
+                _context.KeyMovements.RemoveRange(booking.KeyMovements);
             }
 
             _context.Bookings.Remove(booking);
@@ -232,7 +226,11 @@ namespace KulcsRendszer.Services.Services {
             }
         }
         public async Task<bool> ReturnKey(int userId, int keyId, int bookingId) {
-            var keymovement = await _context.KeyMovements.FirstOrDefaultAsync(x => x.BookingId == bookingId && x.UserId == userId && x.KeyId == keyId && x.Status == "given out" || x.Status == "unreturned");
+            var keymovement = await _context.KeyMovements.FirstOrDefaultAsync(
+                x => x.BookingId == bookingId &&
+                x.UserId == userId &&
+                x.KeyId == keyId &&
+                (x.Status == "given out" || x.Status == "unreturned"));
             var booking = await _context.Bookings.FirstOrDefaultAsync(x => x.Id == bookingId);
             if (booking == null) {
                 throw new BookingNotFoundException("Booking not found with this Id");
@@ -252,7 +250,17 @@ namespace KulcsRendszer.Services.Services {
             StartTime = booking.StartTime,
             EndTime = booking.EndTime,
             Status = booking.Status,
-            SpecialRequest = booking.SpecialRequest
+            SpecialRequest = booking.SpecialRequest,
+
+            KeyMovements = booking.KeyMovements?
+        .Select(movement => new KeyMovementDto {
+            KeyId = movement.KeyId,
+            UserId = movement.UserId,
+            IdentificationMethod = movement.IdentificationMethod,
+            Timestamp = movement.Timestamp,
+            BookingId = movement.BookingId,
+            Status = movement.Status
+        }).ToList() ?? new List<KeyMovementDto>()
         };
     }
 }

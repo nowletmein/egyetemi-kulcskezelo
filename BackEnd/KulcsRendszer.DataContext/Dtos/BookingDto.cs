@@ -9,5 +9,6 @@ namespace KulcsRendszer.DataContext.Dtos {
         public DateTime EndTime { get; set; }
         public string Status { get; set; } = "";
         public string SpecialRequest { get; set; } = "";
+        public List<KeyMovementDto> KeyMovements { get; set; } = new();
     }
 }

@@ -1,8 +1,31 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { jsonOptions, request } from "../api.js";
 import ErrorToast from "./errorToast.jsx";
 
 const emptyTicketForm = { roomId: "", keyId: "", description: "" };
+
+const getBookingKeyMovements = (booking) => {
+  const movements = booking?.keyMovements ?? booking?.KeyMovements;
+  return Array.isArray(movements) ? movements : [];
+};
+
+const getLatestKeyMovement = (booking) =>
+  [...getBookingKeyMovements(booking)].sort((first, second) => {
+    const firstTime = new Date(
+      first.timestamp ?? first.Timestamp ?? 0,
+    ).getTime();
+    const secondTime = new Date(
+      second.timestamp ?? second.Timestamp ?? 0,
+    ).getTime();
+    return secondTime - firstTime;
+  })[0] ?? null;
+
+const getKeyMovementStatus = (movement) =>
+  String(movement?.status ?? movement?.Status ?? "")
+    .trim()
+    .toLowerCase();
+
+const getKeyMovementKeyId = (movement) => movement?.keyId ?? movement?.KeyId;
 
 export default function ReceptionistPage() {
   const [section, setSection] = useState("bookings");
@@ -19,6 +42,20 @@ export default function ReceptionistPage() {
   const [ticketsLoading, setTicketsLoading] = useState(false);
   const [ticketsError, setTicketsError] = useState("");
   const [ticketRefreshKey, setTicketRefreshKey] = useState(0);
+
+  const [keyDialogBooking, setKeyDialogBooking] = useState(null);
+  const [selectedKeyId, setSelectedKeyId] = useState("");
+  const [keyPin, setKeyPin] = useState("");
+  const [keyPinSent, setKeyPinSent] = useState(false);
+  const [keyActionLoading, setKeyActionLoading] = useState(false);
+  const [processingBookingId, setProcessingBookingId] = useState(null);
+  const keyDialogRef = useRef(null);
+
+  useEffect(() => {
+    if (!keyDialogBooking) return;
+    const dialog = keyDialogRef.current;
+    if (dialog && !dialog.open) dialog.showModal();
+  }, [keyDialogBooking]);
 
   const loadData = useCallback(async () => {
     const [roomsResult, bookingsResult] = await Promise.allSettled([
@@ -64,6 +101,21 @@ export default function ReceptionistPage() {
     };
   }, []);
 
+  const refreshBookings = useCallback(async () => {
+    const result = await request("/bookings/getall");
+    if (!Array.isArray(result)) {
+      throw new Error("A foglalások API-válasza érvénytelen formátumú.");
+    }
+
+    setBookings(
+      [...result].sort(
+        (first, second) =>
+          new Date(first.startTime).getTime() -
+          new Date(second.startTime).getTime(),
+      ),
+    );
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -90,8 +142,11 @@ export default function ReceptionistPage() {
       .then((result) => {
         if (!cancelled && Array.isArray(result)) setKeys(result);
       })
-      .catch(() => {
-        if (!cancelled) setKeys([]);
+      .catch((loadError) => {
+        if (!cancelled) {
+          setKeys([]);
+          setError(`A kulcsok betöltése nem sikerült: ${loadError.message}`);
+        }
       });
 
     return () => {
@@ -160,15 +215,159 @@ export default function ReceptionistPage() {
     [rooms],
   );
 
-  const roomKeys = useMemo(
-    () =>
+  // A számként és szövegként érkező azonosítókat is helyesen hasonlítja össze.
+  const getKeysForRoom = useCallback(
+    (roomId) =>
       keys.filter((key) =>
         key.isMasterKey
-          ? key.accessibleRoomIds?.includes(ticketForm.roomId)
-          : key.roomId === ticketForm.roomId,
+          ? key.accessibleRoomIds?.some(
+              (accessibleRoomId) => String(accessibleRoomId) === String(roomId),
+            )
+          : String(key.roomId) === String(roomId),
       ),
-    [keys, ticketForm.roomId],
+    [keys],
   );
+
+  const roomKeys = useMemo(
+    () => getKeysForRoom(ticketForm.roomId),
+    [getKeysForRoom, ticketForm.roomId],
+  );
+
+  const openKeyDialog = (booking) => {
+    const availableKeys = getKeysForRoom(booking.roomId);
+
+    if (availableKeys.length === 0) {
+      setError("Ehhez a teremhez nem található kiadható kulcs.");
+      return;
+    }
+
+    setError("");
+    setNotice("");
+    setKeyDialogBooking(booking);
+    setSelectedKeyId(
+      availableKeys.length === 1 ? String(availableKeys[0].id) : "",
+    );
+    setKeyPin("");
+    setKeyPinSent(false);
+  };
+
+  const closeKeyDialog = () => {
+    if (keyActionLoading) return;
+    setKeyDialogBooking(null);
+    setSelectedKeyId("");
+    setKeyPin("");
+    setKeyPinSent(false);
+  };
+
+  const submitKeyDialog = async (event) => {
+    event.preventDefault();
+    if (!keyDialogBooking || !selectedKeyId || keyActionLoading) return;
+
+    const booking = keyDialogBooking;
+    const keyId = Number(selectedKeyId);
+
+    if (!Number.isInteger(keyId) || keyId <= 0) {
+      setError("A kiválasztott kulcs azonosítója érvénytelen.");
+      return;
+    }
+
+    setKeyActionLoading(true);
+    setError("");
+    setNotice("");
+
+    try {
+      if (!keyPinSent) {
+        // A végpont [FromBody] int userId értéket vár, ezért itt nyers szám a body.
+        await request(
+          `/bookings/${keyId}/generate-pin`,
+          jsonOptions("POST", Number(booking.userId)),
+        );
+
+        setKeyPinSent(true);
+        setNotice("A PIN-kódot elküldtük a felhasználónak.");
+      } else {
+        if (!keyPin.trim()) {
+          setError("Add meg a felhasználó hitelesítő kódját.");
+          return;
+        }
+
+        await request(
+          "/bookings/authenticate-pin",
+          jsonOptions("POST", {
+            userId: Number(booking.userId),
+            keyId,
+            pin: keyPin.trim(),
+            bookingId: Number(booking.id),
+          }),
+        );
+
+        setNotice("A kulcs kiadása sikeres.");
+        setKeyDialogBooking(null);
+        setSelectedKeyId("");
+        setKeyPin("");
+        setKeyPinSent(false);
+        try {
+          await refreshBookings();
+        } catch (refreshError) {
+          setError(
+            `A kulcs kiadása sikerült, de a foglalás frissítése nem: ${refreshError.message}`,
+          );
+        }
+      }
+    } catch (actionError) {
+      const message = actionError.message || "Ismeretlen hiba történt.";
+      setError(
+        message.toLowerCase().includes("invalid or expired pin")
+          ? "A megadott hitelesítő kód érvénytelen vagy lejárt."
+          : `A kulcs művelet nem sikerült: ${message}`,
+      );
+    } finally {
+      setKeyActionLoading(false);
+    }
+  };
+
+  const returnKey = async (booking) => {
+    const currentKeyMovement = getLatestKeyMovement(booking);
+    const currentStatus = getKeyMovementStatus(currentKeyMovement);
+    const keyId = Number(getKeyMovementKeyId(currentKeyMovement));
+
+    if (
+      !["given out", "unreturned"].includes(currentStatus) ||
+      !Number.isInteger(keyId) ||
+      keyId <= 0 ||
+      processingBookingId !== null
+    ) {
+      return;
+    }
+
+    setProcessingBookingId(booking.id);
+    setError("");
+    setNotice("");
+
+    try {
+      await request(
+        "/bookings/return-key",
+        jsonOptions("POST", {
+          userId: Number(booking.userId),
+          keyId,
+          bookingId: Number(booking.id),
+        }),
+      );
+
+      setNotice("A kulcs visszavétele sikeres.");
+      try {
+        await refreshBookings();
+      } catch (refreshError) {
+        setError(
+          `A kulcs visszavétele sikerült, de a foglalás frissítése nem: ${refreshError.message}`,
+        );
+      }
+    } catch (actionError) {
+      setError(`A kulcs visszavétele nem sikerült: ${actionError.message}`);
+    } finally {
+      setProcessingBookingId(null);
+    }
+  };
 
   const submitIssueTicket = async (event) => {
     event.preventDefault();
@@ -200,6 +399,10 @@ export default function ReceptionistPage() {
       ? "Ismeretlen időpont"
       : date.toLocaleString("hu-HU");
   };
+
+  const dialogKeys = keyDialogBooking
+    ? getKeysForRoom(keyDialogBooking.roomId)
+    : [];
 
   return (
     <main className="admin-page receptionist-page">
@@ -268,36 +471,130 @@ export default function ReceptionistPage() {
             <p className="admin-empty">Nincs megjeleníthető foglalás.</p>
           ) : (
             <ul className="receptionist-booking-list">
-              {bookings.map((booking) => (
-                <li className="receptionist-booking-item" key={booking.id}>
-                  <div className="receptionist-booking-heading">
-                    <strong>
-                      {roomNames[booking.roomId] || `Terem ${booking.roomId}`}
-                    </strong>
-                    <span className="admin-count">{booking.status}</span>
-                  </div>
-                  <dl>
-                    <div>
-                      <dt>Foglaló</dt>
-                      <dd>Felhasználó #{booking.userId}</dd>
+              {bookings.map((booking) => {
+                const keyMovements = getBookingKeyMovements(booking);
+                const latestKeyMovement = getLatestKeyMovement(booking);
+                const latestKeyStatus = getKeyMovementStatus(latestKeyMovement);
+                const hasIssuedKey = ["given out", "unreturned"].includes(
+                  latestKeyStatus,
+                );
+                const hasReturnedKey = latestKeyStatus === "returned";
+                const isProcessing = processingBookingId === booking.id;
+
+                return (
+                  <li className="receptionist-booking-item" key={booking.id}>
+                    <div className="receptionist-booking-heading">
+                      <strong>
+                        {roomNames[booking.roomId] || `Terem ${booking.roomId}`}
+                      </strong>
+                      <span className="admin-count">{booking.status}</span>
                     </div>
-                    <div>
-                      <dt>Kezdés</dt>
-                      <dd>{formatDate(booking.startTime)}</dd>
-                    </div>
-                    <div>
-                      <dt>Befejezés</dt>
-                      <dd>{formatDate(booking.endTime)}</dd>
-                    </div>
-                    {booking.specialRequest && (
+                    <dl>
                       <div>
-                        <dt>Megjegyzés</dt>
-                        <dd>{booking.specialRequest}</dd>
+                        <dt>Foglaló</dt>
+                        <dd>Felhasználó #{booking.userId}</dd>
                       </div>
-                    )}
-                  </dl>
-                </li>
-              ))}
+                      <div>
+                        <dt>Kezdés</dt>
+                        <dd>{formatDate(booking.startTime)}</dd>
+                      </div>
+                      <div>
+                        <dt>Befejezés</dt>
+                        <dd>{formatDate(booking.endTime)}</dd>
+                      </div>
+                      {booking.specialRequest && (
+                        <div>
+                          <dt>Megjegyzés</dt>
+                          <dd>{booking.specialRequest}</dd>
+                        </div>
+                      )}
+                      <div>
+                        <dt>Kulcsmozgások</dt>
+                        <dd>
+                          {keyMovements.length === 0
+                            ? "Még nem történt kulcsmozgás."
+                            : [...keyMovements]
+                                .sort((first, second) => {
+                                  const firstTime = new Date(
+                                    first.timestamp ?? first.Timestamp ?? 0,
+                                  ).getTime();
+                                  const secondTime = new Date(
+                                    second.timestamp ?? second.Timestamp ?? 0,
+                                  ).getTime();
+                                  return firstTime - secondTime;
+                                })
+                                .map((movement, index) => {
+                                  const movementStatus =
+                                    getKeyMovementStatus(movement);
+                                  const statusLabel =
+                                    movementStatus === "given out" ||
+                                    movementStatus === "unreturned"
+                                      ? "Kiadva"
+                                      : movementStatus === "returned"
+                                        ? "Visszaadva"
+                                        : movementStatus ||
+                                          "Ismeretlen státusz";
+                                  const movementKeyId =
+                                    getKeyMovementKeyId(movement);
+                                  const movementTimestamp =
+                                    movement.timestamp ?? movement.Timestamp;
+                                  const identificationMethod =
+                                    movement.identificationMethod ??
+                                    movement.IdentificationMethod;
+
+                                  return (
+                                    <span
+                                      key={`${movement.bookingId ?? movement.BookingId ?? booking.id}-${movementKeyId ?? "key"}-${index}`}
+                                    >
+                                      {`Kulcs #${movementKeyId ?? "?"} · ${statusLabel}`}
+                                      {identificationMethod
+                                        ? ` · ${identificationMethod}`
+                                        : ""}
+                                      {movementTimestamp
+                                        ? ` · ${formatDate(movementTimestamp)}`
+                                        : ""}
+                                      {index < keyMovements.length - 1
+                                        ? "; "
+                                        : ""}
+                                    </span>
+                                  );
+                                })}
+                        </dd>
+                      </div>
+                    </dl>
+                    <div
+                      className="admin-form-actions"
+                      style={{ marginTop: "12px" }}
+                    >
+                      {hasReturnedKey ? (
+                        <button type="button" className="admin-button" disabled>
+                          Kulcs leadva
+                        </button>
+                      ) : hasIssuedKey ? (
+                        <button
+                          type="button"
+                          className="admin-button admin-button-primary"
+                          onClick={() => returnKey(booking)}
+                          disabled={processingBookingId !== null}
+                        >
+                          {isProcessing ? "Visszavétel..." : "Kulcs leadva"}
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className="admin-button admin-button-primary"
+                          onClick={() => openKeyDialog(booking)}
+                          disabled={
+                            processingBookingId !== null || keys.length === 0
+                          }
+                        >
+                          Kulcs kiadása
+                        </button>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </section>
@@ -486,6 +783,116 @@ export default function ReceptionistPage() {
             </div>
           )}
         </section>
+      )}
+
+      {keyDialogBooking && (
+        <dialog
+          ref={keyDialogRef}
+          className="admin-panel"
+          aria-labelledby="receptionist-key-modal-title"
+          onCancel={(event) => {
+            event.preventDefault();
+            closeKeyDialog();
+          }}
+          onClick={(event) => {
+            if (event.target === event.currentTarget) closeKeyDialog();
+          }}
+          style={{
+            width: "min(100%, 32rem)",
+            maxHeight: "90vh",
+            overflowY: "auto",
+          }}
+        >
+          <div className="admin-panel-heading">
+            <div>
+              <p className="admin-eyebrow">KULCSKEZELÉS</p>
+              <h2 id="receptionist-key-modal-title">Kulcs kiadása</h2>
+            </div>
+          </div>
+
+          <p className="admin-intro">
+            Foglaló: Felhasználó #{keyDialogBooking.userId}
+            <br />
+            Terem:{" "}
+            {roomNames[keyDialogBooking.roomId] ||
+              `#${keyDialogBooking.roomId}`}
+          </p>
+
+          <form className="admin-form" onSubmit={submitKeyDialog}>
+            <label>
+              Kiadandó kulcs
+              <select
+                required
+                value={selectedKeyId}
+                onChange={(event) => {
+                  setSelectedKeyId(event.target.value);
+                  setKeyPin("");
+                  setKeyPinSent(false);
+                  setNotice("");
+                }}
+                disabled={keyActionLoading || keyPinSent}
+              >
+                <option value="">Válassz kulcsot</option>
+                {dialogKeys.map((key) => (
+                  <option key={key.id} value={key.id}>
+                    {key.isMasterKey
+                      ? `${key.masterKeyName || "Mesterkulcs"} (#${key.id})`
+                      : `Kulcs #${key.id}`}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            {keyPinSent && (
+              <label>
+                A felhasználó hitelesítő kódja
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  value={keyPin}
+                  onChange={(event) => setKeyPin(event.target.value)}
+                  placeholder="Írd be a PIN-kódot"
+                  required
+                  disabled={keyActionLoading}
+                  autoFocus
+                />
+              </label>
+            )}
+
+            <p className="admin-intro">
+              {keyPinSent
+                ? "Kérd el a felhasználótól az értesítésben kapott PIN-kódot, majd ellenőrizd."
+                : "A PIN elküldése után a felhasználó értesítést kap a hitelesítő kóddal."}
+            </p>
+
+            <div className="admin-form-actions">
+              <button
+                type="button"
+                className="admin-button"
+                onClick={closeKeyDialog}
+                disabled={keyActionLoading}
+              >
+                Mégse
+              </button>
+              <button
+                type="submit"
+                className="admin-button admin-button-primary"
+                disabled={
+                  keyActionLoading ||
+                  !selectedKeyId ||
+                  (keyPinSent && !keyPin.trim())
+                }
+              >
+                {keyActionLoading
+                  ? "Feldolgozás..."
+                  : keyPinSent
+                    ? "Kód ellenőrzése"
+                    : "PIN küldése"}
+              </button>
+            </div>
+          </form>
+        </dialog>
       )}
     </main>
   );

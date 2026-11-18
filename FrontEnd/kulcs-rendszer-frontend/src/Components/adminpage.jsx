@@ -916,7 +916,11 @@ export default function AdminPage() {
     setNotice("");
     try {
       await request(
-        isEditing ? `/Key/update/${keyForm.id}` : "/Key/create",
+        isEditing
+          ? `/Key/update/${keyForm.id}`
+          : keyForm.isMasterKey
+            ? "/Key/master"
+            : "/Key/regular",
         jsonOptions(isEditing ? "PUT" : "POST", payload),
       );
       setKeyForm(null);

@@ -85,6 +85,7 @@ namespace KulcsRendszer.API {
             builder.Services.AddScoped<IIssueTicketService, IssueTicketService>();
             builder.Services.AddScoped<IMaintenanceService, MaintenanceService>();
             builder.Services.AddHostedService<NoShowBackgroundService>();
+            builder.Services.AddHostedService<UnreturnedKeyMonitor>();
             //database service
             //builder.Services.AddDbContext<KulcsRendszerDbContext>(options =>
             //options.UseSqlServer(@"Server=(localdb)\mssqllocaldb;Database=KulcsRendszerDB;Trusted_Connection=True;TrustServerCertificate=true"));
