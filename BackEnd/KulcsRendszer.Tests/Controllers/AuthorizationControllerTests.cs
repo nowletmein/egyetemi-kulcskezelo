@@ -302,7 +302,8 @@ public class KeyControllerAuthorizationTests {
 
         public Task<List<KeyDto>> GetAll() => Task.FromResult(new List<KeyDto>());
         public Task<KeyDto> Get(int keyId) => Task.FromResult(new KeyDto());
-        public Task<KeyDto> Create(KeyDto keyDto) => Task.FromResult(new KeyDto());
+        public Task<KeyDto> CreateKey(KeyCreateDto dto) => Task.FromResult(new KeyDto());
+        public Task<KeyDto> CreateMasterKey(MasterKeyCreateDto dto) => Task.FromResult(new KeyDto());
         public Task<KeyDto> Update(int keyId, KeyDto keyDto) => Task.FromResult(new KeyDto());
         public Task<bool> Delete(int keyId) => Task.FromResult(true);
 

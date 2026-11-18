@@ -123,13 +123,20 @@ namespace KulcsRendszer.Services.Services {
         }
 
         public async Task<KeyDto> CreateKey(KeyCreateDto dto) {
-            var roomExists = await _context.ClassRooms.AnyAsync(room => room.Id == dto.RoomId);
-            if (!roomExists) {
-                throw new RoomNotFoundException($"Room not found with id: {dto.RoomId}");
+            var roomId = string.IsNullOrWhiteSpace(dto.RoomId) ? null : dto.RoomId;
+
+            if (roomId != null) {
+                var roomExists = await _context.ClassRooms
+                    .AnyAsync(room => room.Id == roomId);
+
+                if (!roomExists) {
+                    throw new RoomNotFoundException(
+                        $"Room not found with id: {roomId}");
+                }
             }
 
             var key = new Key {
-                RoomId = dto.RoomId
+                RoomId = roomId
             };
 
             _context.Keys.Add(key);

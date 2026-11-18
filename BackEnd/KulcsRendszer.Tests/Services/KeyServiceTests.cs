@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using KulcsRendszer.DataContext.Context;
@@ -148,7 +149,7 @@ public class KeyServiceTests : IAsyncLifetime {
     public async Task Create_ShouldCreateStandardKeyWithoutRoom() {
         var service = new KeyService(_context);
 
-        var result = await service.Create(new KeyDto());
+        var result = await service.CreateKey(new KeyCreateDto());
         var keyInDb = await _context.Keys.FindAsync(result.Id);
 
         Assert.NotNull(keyInDb);
@@ -162,7 +163,7 @@ public class KeyServiceTests : IAsyncLifetime {
         var room = await CreateRoomAsync();
         var service = new KeyService(_context);
 
-        var result = await service.Create(new KeyDto { RoomId = room.Id });
+        var result = await service.CreateKey(new KeyCreateDto { RoomId = room.Id });
 
         Assert.Equal(room.Id, result.RoomId);
         Assert.False(result.IsMasterKey);
@@ -173,7 +174,7 @@ public class KeyServiceTests : IAsyncLifetime {
         var service = new KeyService(_context);
 
         await Assert.ThrowsAsync<RoomNotFoundException>(
-            () => service.Create(new KeyDto { RoomId = "MISSING" }));
+            () => service.CreateKey(new KeyCreateDto { RoomId = "MISSING" }));
 
         Assert.Empty(await _context.Keys.ToListAsync());
     }
@@ -183,8 +184,7 @@ public class KeyServiceTests : IAsyncLifetime {
         var firstRoom = await CreateRoomAsync("A101");
         var secondRoom = await CreateRoomAsync("A102");
         var service = new KeyService(_context);
-        var dto = new KeyDto {
-            IsMasterKey = true,
+        var dto = new MasterKeyCreateDto {
             MasterKeyName = "Épület főkulcsa",
             AccessibleRoomIds = new List<string> {
                 firstRoom.Id,
@@ -193,7 +193,7 @@ public class KeyServiceTests : IAsyncLifetime {
             }
         };
 
-        var result = await service.Create(dto);
+        var result = await service.CreateMasterKey(dto);
         var keyInDb = await _context.MasterKeys.FindAsync(result.Id);
 
         Assert.NotNull(keyInDb);
@@ -211,8 +211,7 @@ public class KeyServiceTests : IAsyncLifetime {
         string masterKeyName) {
         var service = new KeyService(_context);
 
-        await Assert.ThrowsAsync<ArgumentException>(() => service.Create(new KeyDto {
-            IsMasterKey = true,
+        await Assert.ThrowsAsync<ArgumentException>(() => service.CreateMasterKey(new MasterKeyCreateDto {
             MasterKeyName = masterKeyName
         }));
 
@@ -222,13 +221,12 @@ public class KeyServiceTests : IAsyncLifetime {
     [Fact]
     public async Task Create_ShouldThrowRoomNotFoundException_WhenAccessibleRoomDoesNotExist() {
         var service = new KeyService(_context);
-        var dto = new KeyDto {
-            IsMasterKey = true,
+        var dto = new MasterKeyCreateDto {
             MasterKeyName = "Főkulcs",
             AccessibleRoomIds = new List<string> { "MISSING" }
         };
 
-        await Assert.ThrowsAsync<RoomNotFoundException>(() => service.Create(dto));
+        await Assert.ThrowsAsync<RoomNotFoundException>(() => service.CreateMasterKey(dto));
 
         Assert.Empty(await _context.Keys.ToListAsync());
     }

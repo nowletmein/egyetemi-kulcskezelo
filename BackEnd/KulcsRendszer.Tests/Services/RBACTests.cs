@@ -178,19 +178,12 @@ public class RBACTests {
 
     [Fact]
     public async Task KeyMutationsAndMasterKeyPermissions_RequireOnlyAdmin() {
-        await AssertActionHasOnlyRoleAsync("Create", "Admin", "Portas", "KeyController");
+        await AssertActionHasOnlyRoleAsync("CreateKey", "Admin", "Portas", "KeyController");
+        await AssertActionHasOnlyRoleAsync("CreateMasterKey", "Admin", "Portas", "KeyController");
         await AssertActionHasOnlyRoleAsync("Update", "Admin", "Portas", "KeyController");
         await AssertActionHasOnlyRoleAsync("Delete", "Admin", "Portas", "KeyController");
-        await AssertActionHasOnlyRoleAsync(
-            "GrantMasterKeyPermission",
-            "Admin",
-            "Portas",
-            "KeyController");
-        await AssertActionHasOnlyRoleAsync(
-            "RevokeMasterKeyPermission",
-            "Admin",
-            "Portas",
-            "KeyController");
+        await AssertActionHasOnlyRoleAsync("GrantMasterKeyPermission", "Admin", "Portas", "KeyController");
+        await AssertActionHasOnlyRoleAsync("RevokeMasterKeyPermission", "Admin", "Portas", "KeyController");
     }
 
     [Fact]
