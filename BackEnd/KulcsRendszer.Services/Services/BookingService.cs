@@ -8,10 +8,10 @@ using KulcsRendszer.DataContext.Context;
 using KulcsRendszer.DataContext.Dtos;
 using KulcsRendszer.DataContext.Entities;
 using KulcsRendszer.DataContext.Enums;
-using KulcsRendszer.Services.Exceptions;
-using Microsoft.EntityFrameworkCore;
 using KulcsRendszer.Services;
+using KulcsRendszer.Services.Exceptions;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.EntityFrameworkCore;
 
 namespace KulcsRendszer.Services.Services {
     public interface IBookingService {
@@ -196,7 +196,7 @@ namespace KulcsRendszer.Services.Services {
             await _context.SaveChangesAsync();
 
             return pin;
-            
+
         }
 
         public async Task<bool> AuthenticatePIN(int userId, int keyId, string pin, int bookingId) {
@@ -215,7 +215,7 @@ namespace KulcsRendszer.Services.Services {
             if (key.PickupPIN == pin && pin != null) {
                 key.PickupPIN = null;
                 key.PinGeneratedAt = null;
-                
+
                 _context.KeyMovements.Add(new KeyMovement {
                     KeyId = key.Id,
                     UserId = user.Id,
@@ -226,7 +226,8 @@ namespace KulcsRendszer.Services.Services {
                 });
                 await _context.SaveChangesAsync();
                 return true;
-            } else {
+            }
+            else {
                 return false;
             }
         }

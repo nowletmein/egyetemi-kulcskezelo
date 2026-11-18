@@ -14,7 +14,7 @@ namespace KulcsRendszer.DataContext.Dtos {
         public ICollection<IssueTicket> IssueTickets { get; set; } = new List<IssueTicket>();
     }
 
-    public class KeyReturnDto { 
+    public class KeyReturnDto {
         public int UserId { get; set; }
         public int KeyId { get; set; }
         public int BookingId { get; set; }

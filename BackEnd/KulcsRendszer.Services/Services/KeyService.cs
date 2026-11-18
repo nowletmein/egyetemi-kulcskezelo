@@ -305,6 +305,6 @@ namespace KulcsRendszer.Services.Services {
             return true;
         }
 
-        
+
     }
 }

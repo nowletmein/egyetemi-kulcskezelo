@@ -3,14 +3,11 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace KulcsRendszer.DataContext.Migrations
-{
+namespace KulcsRendszer.DataContext.Migrations {
     /// <inheritdoc />
-    public partial class AddKeyPickupPinFields : Migration
-    {
+    public partial class AddKeyPickupPinFields : Migration {
         /// <inheritdoc />
-        protected override void Up(MigrationBuilder migrationBuilder)
-        {
+        protected override void Up(MigrationBuilder migrationBuilder) {
             migrationBuilder.AddColumn<string>(
                 name: "PickupPIN",
                 table: "Keys",
@@ -32,8 +29,7 @@ namespace KulcsRendszer.DataContext.Migrations
         }
 
         /// <inheritdoc />
-        protected override void Down(MigrationBuilder migrationBuilder)
-        {
+        protected override void Down(MigrationBuilder migrationBuilder) {
             migrationBuilder.DropColumn(
                 name: "PickupPIN",
                 table: "Keys");
