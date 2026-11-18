@@ -21,6 +21,12 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - SeedData__AdminEmail=${SEEDADMINEMAIL}
       - SeedData__AdminPassword=${SEEDADMINPASSWORD}
+      - SeedData__PortasEmail=${SEEDPORTASEMAIL}
+      - SeedData__PortasPassword=${SEEDPORTASPASSWORD}
+      - SeedData__IgazgatoEmail=${SEEDIGAZGATOEMAIL}
+      - SeedData__IgazgatoPassword=${SEEDIGAZGATOPASSWORD}
+      - SeedData__OktatoEmail=${SEEDOKTATOEMAIL}
+      - SeedData__OktatoPassword=${SEEDOKTATOPASSWORD}
       - ConnectionStrings__DefaultConnection=Server=database,1433;Database=KulcsRendszerDb;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;
       - NoShow__GracePeriodMinutes=15
       - TZ=Europe/Budapest

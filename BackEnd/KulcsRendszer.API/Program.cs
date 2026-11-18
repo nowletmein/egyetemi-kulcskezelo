@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json.Serialization;
 using KulcsRendszer.API.BackgroundServices;
 using KulcsRendszer.API.Middleware;
 using KulcsRendszer.API.Services;
@@ -84,6 +85,7 @@ namespace KulcsRendszer.API {
             builder.Services.AddScoped<IIssueTicketService, IssueTicketService>();
             builder.Services.AddScoped<IMaintenanceService, MaintenanceService>();
             builder.Services.AddHostedService<NoShowBackgroundService>();
+            builder.Services.AddHostedService<UnreturnedKeyMonitor>();
             //database service
             //builder.Services.AddDbContext<KulcsRendszerDbContext>(options =>
             //options.UseSqlServer(@"Server=(localdb)\mssqllocaldb;Database=KulcsRendszerDB;Trusted_Connection=True;TrustServerCertificate=true"));
@@ -99,7 +101,10 @@ namespace KulcsRendszer.API {
             builder.Services.AddHealthChecks()
             .AddDbContextCheck<KulcsRendszerDbContext>();
 
-
+            builder.Services.AddControllers()
+            .AddJsonOptions(options => {
+                options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+            });
             var app = builder.Build();
 
 

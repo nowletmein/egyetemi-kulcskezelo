@@ -200,6 +200,12 @@ namespace KulcsRendszer.DataContext.Migrations
                         .HasMaxLength(8)
                         .HasColumnType("nvarchar(8)");
 
+                    b.Property<string>("PickupPIN")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("PinGeneratedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("RoomId")
                         .HasColumnType("nvarchar(450)");
 
@@ -231,6 +237,10 @@ namespace KulcsRendszer.DataContext.Migrations
 
                     b.Property<int>("KeyId")
                         .HasColumnType("int");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("Timestamp")
                         .HasColumnType("datetime2");

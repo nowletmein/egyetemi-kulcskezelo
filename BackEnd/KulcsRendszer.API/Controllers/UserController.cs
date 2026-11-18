@@ -17,7 +17,7 @@ namespace KulcsRendszer.Controllers {
         public UserController(IUserService userService) {
             _userService = userService;
         }
-        [HttpGet("{id}")]
+        [HttpGet("get")]
         public async Task<IActionResult> Get() {
 
             var claim = User.FindFirst(ClaimTypes.NameIdentifier);
@@ -173,6 +173,20 @@ namespace KulcsRendszer.Controllers {
                 return BadRequest("Message cannot be empty.");
             }
             return Ok(await _userService.AddNotification(userId, message));
+        }
+
+        [HttpPost("check-unreturned")]
+        [Authorize]
+        public async Task<IActionResult> CheckUnreturnedKeys() {
+            var unreturnedMovements = await _userService.HasUnreturnedKey();
+
+            foreach (var movement in unreturnedMovements) {
+                await _userService.AddNotification(
+                    movement.UserId,
+                    $"Your key (ID: {movement.KeyId}) is overdue by more than 50 minutes. Please return it immediately.");
+            }
+
+            return Ok(unreturnedMovements);
         }
 
         [HttpDelete("notifications")]

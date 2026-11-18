@@ -9,10 +9,11 @@ using Microsoft.AspNetCore.Mvc;
 
 public class BookingControllerAuthorizationTests {
     private readonly FakeBookingService _service = new();
+    private readonly FakeUserService _userService = new();
     private readonly BookingController _controller;
 
     public BookingControllerAuthorizationTests() {
-        _controller = new BookingController(_service);
+        _controller = new BookingController(_service, _userService);
     }
 
     [Theory]
@@ -220,6 +221,36 @@ public class BookingControllerAuthorizationTests {
             GetBookingOwnerCalls++;
             return Task.FromResult(BookingOwnerId);
         }
+
+        public Task<string> GeneratePIN(int keyId, int userId) =>
+            Task.FromResult("12345");
+
+        public Task<bool> AuthenticatePIN(int userId, int keyId, string pin, int bookingId) =>
+            Task.FromResult(true);
+
+        public Task<bool> ReturnKey(int userId, int keyId, int bookingId) =>
+            Task.FromResult(true);
+    }
+
+    private sealed class FakeUserService : IUserService {
+        public Task<UserDto?> Get(int userId) => throw new NotImplementedException();
+        public Task<List<UserInfoDto>> GetAll() => throw new NotImplementedException();
+        public Task<UserInfoDto?> GetInfo(int userId) => throw new NotImplementedException();
+        public Task<string> Create(UserCreateDto dto) => throw new NotImplementedException();
+        public Task<UserDto?> Update(int userId, UserUpdateDto userUpdateDto) => throw new NotImplementedException();
+        public Task<bool> ChangePassword(int id, ChangePasswordDto dto) => throw new NotImplementedException();
+        public Task<bool> Delete(int id) => throw new NotImplementedException();
+        public Task<string> Login(string email, string password) => throw new NotImplementedException();
+        public Task<int> CreateRole(RoleCreateDto dto) => throw new NotImplementedException();
+        public Task<bool> AddRoleToUser(int userId, int roleId) => throw new NotImplementedException();
+        public Task<RoleDto?> GetRole(int roleId) => throw new NotImplementedException();
+        public Task<List<RoleDto>> GetAllRoles() => throw new NotImplementedException();
+        public Task<bool> DeleteRole(int id) => throw new NotImplementedException();
+        public Task<bool> RemoveRoleFromUser(int userId) => throw new NotImplementedException();
+        public Task<bool> AddNotification(int userId, string message) => Task.FromResult(true);
+        public Task<List<NotificationItem>> GetNotifications(int userId) => throw new NotImplementedException();
+        public Task<bool> ClearNotifications(int userId) => throw new NotImplementedException();
+        public Task<List<KeyMovement>> HasUnreturnedKey() => throw new NotImplementedException();
     }
 }
 
@@ -271,7 +302,8 @@ public class KeyControllerAuthorizationTests {
 
         public Task<List<KeyDto>> GetAll() => Task.FromResult(new List<KeyDto>());
         public Task<KeyDto> Get(int keyId) => Task.FromResult(new KeyDto());
-        public Task<KeyDto> Create(KeyDto keyDto) => Task.FromResult(new KeyDto());
+        public Task<KeyDto> CreateKey(KeyCreateDto dto) => Task.FromResult(new KeyDto());
+        public Task<KeyDto> CreateMasterKey(MasterKeyCreateDto dto) => Task.FromResult(new KeyDto());
         public Task<KeyDto> Update(int keyId, KeyDto keyDto) => Task.FromResult(new KeyDto());
         public Task<bool> Delete(int keyId) => Task.FromResult(true);
 

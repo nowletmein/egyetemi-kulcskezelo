@@ -4,7 +4,8 @@ namespace KulcsRendszer.DataContext.Entities {
 
         public string? RoomId { get; set; }
         public ClassRoom? ClassRoom { get; set; }
-
+        public string? PickupPIN { get; set; } = null;
+        public DateTime? PinGeneratedAt { get; set; } = null;
         public ICollection<MasterKeyPermission> MasterKeyPermissions { get; set; } = new List<MasterKeyPermission>();
         public ICollection<KeyMovement> KeyMovements { get; set; } = new List<KeyMovement>();
         public ICollection<IssueTicket> IssueTickets { get; set; } = new List<IssueTicket>();

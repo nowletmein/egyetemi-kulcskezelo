@@ -16,7 +16,7 @@ namespace KulcsRendszer.DataContext.Entities {
 
         public DateTime StartTime { get; set; }
         public DateTime EndTime { get; set; }
-        public string Status { get; set; }
+        public string? Status { get; set; }
         public string SpecialRequest { get; set; } = "";
 
         public ICollection<KeyMovement> KeyMovements { get; set; } = new List<KeyMovement>();

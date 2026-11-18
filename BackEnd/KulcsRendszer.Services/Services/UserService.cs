@@ -38,6 +38,7 @@ namespace KulcsRendszer.Services.Services {
         Task<List<NotificationItem>> GetNotifications(int userId);
         Task<bool> AddNotification(int userId, string message);
         Task<bool> ClearNotifications(int userId);
+        Task<List<KeyMovement>> HasUnreturnedKey();
     }
 
     public class UserService : IUserService {
@@ -328,7 +329,25 @@ namespace KulcsRendszer.Services.Services {
             await _context.SaveChangesAsync();
             return true;
         }
+        public async Task<List<KeyMovement>> HasUnreturnedKey() {
+            var cutoff = DateTime.UtcNow.AddMinutes(-50);
 
+            var overdueMovements = await _context.KeyMovements
+                .Include(x => x.Booking)
+                .Where(x => x.Status == "given out" && x.Booking != null && x.Booking.EndTime <= cutoff)
+                .ToListAsync();
+
+            if (overdueMovements.Count == 0) {
+                return overdueMovements;
+            }
+
+            foreach (var movement in overdueMovements) {
+                movement.Status = "unreturned";
+            }
+
+            await _context.SaveChangesAsync();
+            return overdueMovements;
+        }
         public async Task<bool> ClearNotifications(int userId) {
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
 

@@ -1,21 +1,23 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
 using KulcsRendszer.DataContext.Context;
 using KulcsRendszer.DataContext.Dtos;
 using KulcsRendszer.DataContext.Entities;
 using KulcsRendszer.DataContext.Enums;
+using KulcsRendszer.Services;
 using KulcsRendszer.Services.Exceptions;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
-
 
 namespace KulcsRendszer.Services.Services {
     public interface IBookingService {
         Task<IReadOnlyList<BookingDto>> GetAllBookingsAsync(
             CancellationToken cancellationToken);
-
+        Task<bool> ReturnKey(int userId, int keyId, int bookingId);
         Task<IReadOnlyList<BookingDto>> GetUserBookingsAsync(
             int userId,
             CancellationToken cancellationToken);
@@ -23,7 +25,9 @@ namespace KulcsRendszer.Services.Services {
         Task<BookingDto> AddUserBookingAsync(
             BookingCreateDto bookingCreateDto,
             CancellationToken cancellationToken);
+        Task<string> GeneratePIN(int keyId, int userId);
 
+        Task<bool> AuthenticatePIN(int userId, int keyId, string pin, int bookingId);
         Task<bool> DeleteUserBookingAsync(
             int bookingId,
             CancellationToken cancellationToken);
@@ -42,22 +46,11 @@ namespace KulcsRendszer.Services.Services {
 
         public async Task<IReadOnlyList<BookingDto>> GetAllBookingsAsync(
             CancellationToken cancellationToken) {
-            return await _context.Bookings
-                .AsNoTracking()
-                .OrderBy(booking => booking.StartTime)
-                .Select(booking => new BookingDto {
-                    Id = booking.Id,
-                    UserId = booking.UserId,
-                    RoomId = booking.RoomId,
-                    StartTime = booking.StartTime,
-                    EndTime = booking.EndTime,
-                    Status = booking.Status,
-                    SpecialRequest = booking.SpecialRequest
-                })
-                .ToListAsync(cancellationToken);
             var bookings = await _context.Bookings
-                .AsNoTracking()
-                .ToListAsync(cancellationToken);
+        .AsNoTracking()
+        .Include(booking => booking.KeyMovements)
+        .OrderBy(booking => booking.StartTime)
+        .ToListAsync(cancellationToken);
 
             return bookings.Select(ToDto).ToList();
         }
@@ -150,9 +143,10 @@ namespace KulcsRendszer.Services.Services {
         }
 
         public async Task<bool> DeleteUserBookingAsync(
-            int bookingId,
-            CancellationToken cancellationToken) {
+        int bookingId,
+        CancellationToken cancellationToken) {
             var booking = await _context.Bookings
+                .Include(b => b.KeyMovements)
                 .FirstOrDefaultAsync(
                     item => item.Id == bookingId,
                     cancellationToken);
@@ -160,6 +154,10 @@ namespace KulcsRendszer.Services.Services {
             if (booking == null) {
                 throw new BookingNotFoundException(
                     "Booking not found for this user.");
+            }
+
+            if (booking.KeyMovements != null && booking.KeyMovements.Any()) {
+                _context.KeyMovements.RemoveRange(booking.KeyMovements);
             }
 
             _context.Bookings.Remove(booking);
@@ -177,6 +175,74 @@ namespace KulcsRendszer.Services.Services {
                 .FirstOrDefaultAsync(cancellationToken);
         }
 
+        public async Task<string> GeneratePIN(int keyId, int userId) {
+            var key = await _context.Keys.FirstOrDefaultAsync(x => x.Id == keyId);
+            var user = await _context.Users.FirstOrDefaultAsync(x => x.Id == userId);
+            if (key == null) {
+                throw new KeyNotFoundException("Key with this Id doesent exixt");
+            }
+            if (user == null) {
+                throw new UserNotFoundException("User with this Id desent exist");
+            }
+            string pin = RandomNumberGenerator.GetInt32(10000, 100000).ToString();
+            key.PickupPIN = pin;
+            key.PinGeneratedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            return pin;
+
+        }
+
+        public async Task<bool> AuthenticatePIN(int userId, int keyId, string pin, int bookingId) {
+            var key = await _context.Keys.FirstOrDefaultAsync(x => x.Id == keyId);
+            var user = await _context.Users.FirstOrDefaultAsync(x => x.Id == userId);
+            var booking = await _context.Bookings.FirstOrDefaultAsync(x => x.Id == bookingId);
+            if (user == null) {
+                throw new UserNotFoundException("User with this Id desent exist");
+            }
+            if (key == null) {
+                throw new KeyNotFoundException("Key with this Id doesent exixt");
+            }
+            if (booking == null) {
+                throw new BookingNotFoundException("Booking with this Id doesent exixt");
+            }
+            if (key.PickupPIN == pin && pin != null) {
+                key.PickupPIN = null;
+                key.PinGeneratedAt = null;
+
+                _context.KeyMovements.Add(new KeyMovement {
+                    KeyId = key.Id,
+                    UserId = user.Id,
+                    IdentificationMethod = "PIN",
+                    Timestamp = DateTime.UtcNow,
+                    BookingId = booking.Id,
+                    Status = "given out",
+                });
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            else {
+                return false;
+            }
+        }
+        public async Task<bool> ReturnKey(int userId, int keyId, int bookingId) {
+            var keymovement = await _context.KeyMovements.FirstOrDefaultAsync(
+                x => x.BookingId == bookingId &&
+                x.UserId == userId &&
+                x.KeyId == keyId &&
+                (x.Status == "given out" || x.Status == "unreturned"));
+            var booking = await _context.Bookings.FirstOrDefaultAsync(x => x.Id == bookingId);
+            if (booking == null) {
+                throw new BookingNotFoundException("Booking not found with this Id");
+            }
+            if (keymovement == null) {
+                throw new KeyNotFoundException("This user doesent have a unreturned key");
+            }
+            keymovement.Status = "returned";
+            booking.Status = "closed";
+            await _context.SaveChangesAsync();
+            return true;
+        }
         private static BookingDto ToDto(Booking booking) => new BookingDto {
             Id = booking.Id,
             UserId = booking.UserId,
@@ -184,7 +250,17 @@ namespace KulcsRendszer.Services.Services {
             StartTime = booking.StartTime,
             EndTime = booking.EndTime,
             Status = booking.Status,
-            SpecialRequest = booking.SpecialRequest
+            SpecialRequest = booking.SpecialRequest,
+
+            KeyMovements = booking.KeyMovements?
+        .Select(movement => new KeyMovementDto {
+            KeyId = movement.KeyId,
+            UserId = movement.UserId,
+            IdentificationMethod = movement.IdentificationMethod,
+            Timestamp = movement.Timestamp,
+            BookingId = movement.BookingId,
+            Status = movement.Status
+        }).ToList() ?? new List<KeyMovementDto>()
         };
     }
 }
