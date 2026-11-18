@@ -12,7 +12,8 @@ namespace KulcsRendszer.Services.Services {
     public interface IKeyService {
         Task<List<KeyDto>> GetAll();
         Task<KeyDto> Get(int keyId);
-        Task<KeyDto> Create(KeyDto keyDto);
+        Task<KeyDto> CreateKey(KeyCreateDto dto);
+        Task<KeyDto> CreateMasterKey(MasterKeyCreateDto dto);
         Task<KeyDto> Update(int keyId, KeyDto keyDto);
         Task<bool> Delete(int keyId);
         Task<MasterKeyPermission> GrantMasterKeyPermission(
@@ -121,26 +122,45 @@ namespace KulcsRendszer.Services.Services {
             return MapToKeyDto(key);
         }
 
-        public async Task<KeyDto> Create(KeyDto keyDto) {
-            if (keyDto.RoomId != null) {
-                var roomExists = await _context.ClassRooms
-                    .AnyAsync(room => room.Id == keyDto.RoomId);
-
-                if (!roomExists) {
-                    throw new RoomNotFoundException(
-                        $"Room not found with id: {keyDto.RoomId}");
-                }
+        public async Task<KeyDto> CreateKey(KeyCreateDto dto) {
+            var roomExists = await _context.ClassRooms.AnyAsync(room => room.Id == dto.RoomId);
+            if (!roomExists) {
+                throw new RoomNotFoundException($"Room not found with id: {dto.RoomId}");
             }
 
-            if (keyDto.IsMasterKey && string.IsNullOrWhiteSpace(keyDto.MasterKeyName)) {
-                throw new ArgumentException("A master key name is required.");
-            }
+            var key = new Key {
+                RoomId = dto.RoomId
+            };
 
-            var key = await MapToKey(keyDto);
             _context.Keys.Add(key);
             await _context.SaveChangesAsync();
 
             return await Get(key.Id);
+        }
+
+        public async Task<KeyDto> CreateMasterKey(MasterKeyCreateDto dto) {
+            if (string.IsNullOrWhiteSpace(dto.MasterKeyName)) {
+                throw new ArgumentException("A master key name is required.");
+            }
+
+            var accessibleRoomIds = dto.AccessibleRoomIds?.Distinct().ToList() ?? new List<string>();
+            var accessibleRooms = await _context.ClassRooms
+                .Where(room => accessibleRoomIds.Contains(room.Id))
+                .ToListAsync();
+
+            if (accessibleRooms.Count != accessibleRoomIds.Count) {
+                throw new RoomNotFoundException("One or more accessible rooms were not found.");
+            }
+
+            var masterKey = new MasterKey {
+                MasterKeyName = dto.MasterKeyName,
+                AccessibleRooms = accessibleRooms
+            };
+
+            _context.Keys.Add(masterKey);
+            await _context.SaveChangesAsync();
+
+            return await Get(masterKey.Id);
         }
 
         public async Task<KeyDto> Update(int keyId, KeyDto keyDto) {
@@ -284,5 +304,7 @@ namespace KulcsRendszer.Services.Services {
             await _context.SaveChangesAsync();
             return true;
         }
+
+        
     }
 }

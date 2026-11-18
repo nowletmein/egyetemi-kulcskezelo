@@ -32,11 +32,18 @@ namespace KulcsRendszer.Controllers {
             return Ok(key);
         }
 
-        [HttpPost("create")]
+        [HttpPost("regular")]
         [Authorize(Roles = "Admin")]
-        public async Task<ActionResult<KeyDto>> Create([FromBody] KeyDto keyDto) {
-            var createdKey = await _keyService.Create(keyDto);
-            return CreatedAtAction(nameof(Get), new { id = createdKey.Id }, createdKey);
+        public async Task<IActionResult> CreateKey([FromBody] KeyCreateDto dto) {
+            var created = await _keyService.CreateKey(dto);
+            return CreatedAtAction(nameof(Get), new { id = created.Id }, created);
+        }
+
+        [HttpPost("master")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> CreateMasterKey([FromBody] MasterKeyCreateDto dto) {
+            var created = await _keyService.CreateMasterKey(dto);
+            return CreatedAtAction(nameof(Get), new { id = created.Id }, created);
         }
 
         [HttpPut("update/{id}")]

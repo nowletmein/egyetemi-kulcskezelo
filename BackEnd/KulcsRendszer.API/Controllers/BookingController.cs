@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using KulcsRendszer.DataContext.Dtos;
+using KulcsRendszer.DataContext.Entities;
 using KulcsRendszer.Services.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -10,9 +11,10 @@ namespace KulcsRendszer.API.Controllers {
     [Authorize]
     public class BookingController : ControllerBase {
         private readonly IBookingService _bookingService;
-
-        public BookingController(IBookingService bookingService) {
+        private readonly IUserService _userService;
+        public BookingController(IBookingService bookingService, IUserService userService) {
             _bookingService = bookingService;
+            _userService = userService;
         }
 
         [HttpGet("getall")]
@@ -98,9 +100,35 @@ namespace KulcsRendszer.API.Controllers {
             return NoContent();
         }
 
+        [HttpPost("{keyId}/generate-pin")]
+        [Authorize(Roles = "Portas")]
+        public async Task<IActionResult> GeneratePIN(int keyId, [FromBody] int userId) {
+            string pin = await _bookingService.GeneratePIN(keyId, userId);
+            return Ok(await _userService.AddNotification(userId, $"Your key pickup PIN is: {pin}"));
+        }
+
+        [HttpPost("authenticate-pin")]
+        [Authorize(Roles = "Portas")]
+        public async Task<IActionResult> AuthenticatePIN([FromBody] AuthenticatePINDto authenticatePIN) {
+            var result = await _bookingService.AuthenticatePIN(authenticatePIN.UserId, authenticatePIN.KeyId, authenticatePIN.PIN, authenticatePIN.BookingId);
+            if (!result) {
+                return BadRequest("Invalid or expired PIN.");
+            }
+            return Ok(result);
+        }
+
+        [HttpPost("return-key")]
+        [Authorize(Roles = "Portas")]
+        public async Task<IActionResult> ReturnKey([FromBody] KeyReturnDto keyReturn) {
+            var result = await _bookingService.ReturnKey(keyReturn.UserId, keyReturn.KeyId, keyReturn.BookingId);
+            return Ok(result);
+        }
+
         private bool TryGetCurrentUserId(out int userId) {
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
             return int.TryParse(userIdClaim?.Value, out userId);
         }
+
+
     }
 }
